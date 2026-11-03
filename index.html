@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>H.A.L.O. Kiosk Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lora:wght@600;700&display=swap">
+<style>
+/* Layout: a waiting-room wall; intro strip on top, the working kiosk tower and the phone stand side by side below. Single light look by choice (it matches the kiosk). */
+:root {
+  --wall: #E3E8E6;
+  --wall-deep: #D2DAD7;
+  --ink: #12232E;
+  --muted: #46565F;
+  --teal: #0F5F63;
+  --alert: #B83A0E;
+  --card: #F4F6F5;
+  --display: 'Lora', Georgia, serif;
+  --body: 'Atkinson Hyperlegible', Verdana, system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--wall); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.5; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 48px; }
+.wrap { max-width: 1380px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; }
+.intro { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px 48px; align-items: end; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.14em; color: var(--teal); text-transform: uppercase; }
+h1 { font-family: var(--display); font-size: clamp(48px, 7vw, 84px); line-height: 1; letter-spacing: 0.02em; margin: 6px 0 12px; }
+.lede { font-size: 19px; max-width: 34em; color: #2E3E47; margin: 0; text-wrap: pretty; }
+.try { background: var(--card); border-radius: 14px; padding: 18px 22px; display: flex; flex-direction: column; gap: 10px; }
+.try h2 { font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; margin: 0; color: var(--muted); }
+.try ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.try .note { font-size: 14px; color: var(--muted); margin: 0; }
+.stage { display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; justify-content: center; }
+.col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.col-kiosk { flex: 1 1 560px; max-width: 920px; }
+.col-phone { flex: 0 1 414px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+.label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.label b { font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; }
+.label span { font-size: 14px; color: var(--muted); }
+.scaler { position: relative; width: 100%; overflow: hidden; }
+.scaler > .dc { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.phone-frame { width: 414px; border: 12px solid var(--ink); border-radius: 48px; background: var(--ink); overflow: hidden; }
+.phone-screen { height: min(820px, 78vh); overflow-y: auto; border-radius: 36px; background: #F4F6F5; overscroll-behavior: contain; }
+.phone-holder { position: relative; overflow: hidden; }
+.phone-holder > .phone-frame { transform-origin: 0 0; }
+button:focus-visible { outline: 3px solid #3FC1C0; outline-offset: 2px; }
+footer a { color: var(--teal); }
+footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; border-top: 1px solid var(--wall-deep); padding-top: 16px; }
+@media (max-width: 860px) {
+  .intro { grid-template-columns: minmax(0, 1fr); }
+  .col-phone { position: static; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <section class="intro">
+    <div>
+      <div class="eyebrow">ER wait-time project · interactive prototype</div>
+      <h1>H.A.L.O.</h1>
+      <p class="lede">A live wait screen for the emergency waiting room. The kiosk tower and the phone page show the same information and share one live wait list.</p>
+    </div>
+    <div class="try">
+      <h2>Things to try</h2>
+      <ul>
+        <li>Press <b>Call for help</b> on either screen. The kiosk sounds an alarm.</li>
+        <li>Tap a place on the kiosk <b>map</b> for directions.</li>
+        <li>Play the <b>video</b> on the kiosk.</li>
+        <li>Tap a <b>ticket</b> to see why its wait changed.</li>
+        <li>Wait a few seconds: the list <b>updates on its own</b>.</li>
+      </ul>
+      <p class="note">Sound plays only after you tap. All tickets, times and places are examples.</p>
+    </div>
+  </section>
+
+  <section class="stage">
+    <div class="col col-kiosk">
+      <div class="label"><b>Kiosk tower</b><span>One of four identical screens</span></div>
+      <div class="scaler" id="kioskScaler"><div class="dc" id="kiosk" style="width:920px;height:1970px"></div></div>
+    </div>
+    <div class="col col-phone">
+      <div class="label"><b>Phone page</b><span>Ticket A118 · scroll inside</span></div>
+      <div class="phone-holder" id="phoneHolder">
+        <div class="phone-frame" id="phoneFrame"><div class="phone-screen"><div id="phone"></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer><span>[TEAM NAMES] · ER Wait-Time Concept</span><span>Concept write-up: <a href="docs/HALO-concept-system-2-pages.pdf">2-page PDF</a> · <a href="docs/HALO-concept-system-4-pages.pdf">4-page PDF</a></span><span>Prototype only. Not connected to a real hospital system.</span></footer>
+</div>
+
+<template id="kioskTpl"><div style="width: 920px; height: 1970px; box-sizing: border-box; background: #D9DEDB; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #12232E; display: flex; flex-direction: column; align-items: center; padding-top: 48px">
+
+  <!-- Tower cap with halo light ring -->
+  <div style="width: 840px; height: 64px; background: #1C2A31; border-radius: 28px 28px 0 0; display: flex; align-items: center; justify-content: center">
+    <div style="{{ringStyle}}"></div>
+  </div>
+
+  <!-- Tower body + screen -->
+  <div style="width: 840px; box-sizing: border-box; background: #1C2A31; padding: 24px 40px 40px 40px">
+    <div style="width: 760px; height: 1440px; box-sizing: border-box; background: #F4F6F5; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column">
+
+      <!-- Header -->
+      <header style="height: 96px; box-sizing: border-box; padding: 0 32px; background: #12232E; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between">
+        <div style="display: flex; align-items: center; gap: 16px">
+          <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17" fill="none" stroke="{{halo}}" stroke-width="4"></circle><path d="M22 14v16M14 22h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path></svg>
+          <div style="display: flex; flex-direction: column">
+            <div style="font-size: 30px; font-weight: 700; letter-spacing: 3px">H.A.L.O.</div>
+            <sc-if value="{{notHelp}}" hint-placeholder-val="{{true}}">
+              <div style="font-size: 16px; color: #C9D6DC">[HOSPITAL NAME] · Emergency Waiting Room</div>
+            </sc-if>
+            <sc-if value="{{helpMode}}" hint-placeholder-val="{{false}}">
+              <div style="{{pillStyle}}">HELP REQUESTED</div>
+            </sc-if>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end">
+          <div style="font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums">{{clock}}</div>
+          <div style="font-size: 15px; color: #C9D6DC">{{sinceText}}</div>
+        </div>
+      </header>
+
+      <!-- Wait list -->
+      <section style="padding: 24px 32px 16px 32px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 40px">
+          <h2 style="margin: 0; font-size: 30px">Wait list</h2>
+          <sc-if value="{{showEvent}}" hint-placeholder-val="{{false}}">
+            <div aria-live="polite" style="font-size: 16px; font-weight: 700; color: #5A4300; background: #FFF4C2; border-radius: 999px; padding: 8px 16px">Updated: {{event}}</div>
+          </sc-if>
+          <sc-if value="{{noEvent}}" hint-placeholder-val="{{true}}">
+            <div style="font-size: 17px; color: #46565F">Tap a number to see why</div>
+          </sc-if>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr) 170px; padding: 0 20px; font-size: 15px; font-weight: 700; color: #46565F; letter-spacing: 1px">
+          <div>TICKET</div><div>STATUS</div><div style="text-align: right">EST. WAIT</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+            <button onClick="{{r.onTap}}" style="{{r.rowStyle}}">
+              <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr) 170px; align-items: center; width: 100%">
+                <div style="font-size: 28px; font-weight: 700">{{r.ticket}}</div>
+                <div style="font-size: 19px; color: #2E3E47">{{r.status}}</div>
+                <div style="font-size: 26px; font-weight: 700; text-align: right; white-space: nowrap">{{r.wait}}</div>
+              </div>
+              <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #B9CFD0; font-size: 18px; line-height: 1.4; color: #12232E; text-align: left; width: 100%">{{r.reason}}</div>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- ============ NORMAL MODE ============ -->
+      <sc-if value="{{normalMode}}" hint-placeholder-val="{{true}}">
+        <section style="padding: 8px 32px 16px 32px; display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 20px">
+          <div style="background: #FFFFFF; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; justify-content: space-between; align-items: baseline">
+              <h2 style="margin: 0; font-size: 24px; white-space: nowrap">Hospital map · Floor 1</h2>
+              <div style="font-size: 14px; color: #46565F; text-align: right">Tap for directions</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: 78px 78px 78px; gap: 8px; font-size: 15px; font-weight: 700">
+              <button onClick="{{go.here}}" style="grid-column: span 2; grid-row: span 2; border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #0F5F63; color: #FFFFFF; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between">
+                <span>ER Waiting Room</span>
+                <span style="display: flex; align-items: center; gap: 6px; font-size: 14px"><span style="width: 12px; height: 12px; border-radius: 6px; background: #FFFFFF"></span>You are here</span>
+              </button>
+              <button onClick="{{go.restrooms}}" style="border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; vertical-align: top; cursor: pointer; background: #CDE6E4; color: #12232E; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start">Restrooms<span style="font-weight: 400; font-size: 13px">1 min walk</span></button>
+              <button onClick="{{go.vending}}" style="border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #CDE6E4; color: #12232E; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start">Vending<span style="font-weight: 400; font-size: 13px">Open 24 hr</span></button>
+              <button onClick="{{go.pharmacy}}" style="border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #CDE6E4; color: #12232E; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start">Pharmacy<span style="font-weight: 400; font-size: 13px">Until 9 PM</span></button>
+              <button onClick="{{go.radiology}}" style="border: 1px dashed #6B6B6B; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #E3E3E3; color: #4A4A4A; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start">Radiology<span style="font-weight: 400; font-size: 13px">Closed</span></button>
+              <button onClick="{{go.cafeteria}}" style="grid-column: span 2; border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #CDE6E4; color: #12232E; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start">Cafeteria<span style="font-weight: 400; font-size: 13px">Open until 8 PM</span></button>
+              <button onClick="{{go.chapel}}" style="border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #CDE6E4; color: #12232E; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start">Chapel<span style="font-weight: 400; font-size: 13px">Open 24 hr</span></button>
+              <button onClick="{{go.exit}}" style="border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #CDE6E4; color: #12232E; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start">Exit &amp; Parking</button>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <button onClick="{{pressHelp}}" aria-label="Call for help" style="flex-grow: 1; border: 0; border-radius: 14px; background: {{help}}; color: #FFFFFF; font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; cursor: pointer">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+              <span style="font-size: 30px; font-weight: 700; line-height: 1.1">Call for help</span>
+              <span style="font-size: 16px; line-height: 1.3; text-align: center">Feeling worse? A nurse will come to you.</span>
+            </button>
+            <div style="background: #FFFFFF; border-radius: 14px; padding: 14px; font-size: 15px; line-height: 1.35; color: #2E3E47">You keep your place in line when you call.</div>
+          </div>
+        </section>
+
+        <!-- Video: thumbnail -->
+        <sc-if value="{{videoThumb}}" hint-placeholder-val="{{true}}">
+          <section style="padding: 8px 32px 0 32px; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: stretch">
+            <button onClick="{{playVideo}}" aria-label="Play video: While you wait, staying safe" style="height: 170px; border: 0; cursor: pointer; border-radius: 14px; background: #0F5F63; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; position: relative; padding: 0; font-family: inherit; color: #FFFFFF">
+              <span style="position: absolute; top: 12px; left: 14px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: #CDE6E4">[HOSPITAL NAME] · PATIENT EDUCATION</span>
+              <svg width="60" height="60" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.25)" stroke="#FFFFFF" stroke-width="1.5"></circle><path d="M10 8l6 4-6 4z" fill="#FFFFFF"></path></svg>
+              <span style="font-size: 16px; font-weight: 700">While You Wait</span>
+              <span style="position: absolute; right: 12px; bottom: 10px; font-size: 11px; font-weight: 700; border: 1px solid #CDE6E4; border-radius: 3px; padding: 0 4px; color: #CDE6E4">CC</span>
+            </button>
+            <div style="display: flex; flex-direction: column; justify-content: center; gap: 8px">
+              <div style="font-size: 15px; font-weight: 700; color: #0F5F63; letter-spacing: 1px">PATIENT EDUCATION · TAP TO PLAY · 0:30</div>
+              <div style="font-size: 26px; font-weight: 700; line-height: 1.2">While you wait: staying safe</div>
+              <div style="font-size: 17px; color: #46565F; line-height: 1.35">Clean hands · Food and drink · When to tell staff you feel worse</div>
+            </div>
+          </section>
+        </sc-if>
+
+        <!-- Video: player -->
+        <sc-if value="{{videoOpen}}" hint-placeholder-val="{{false}}">
+          <section style="padding: 8px 32px 0 32px">
+            <div style="height: 244px; border-radius: 14px; overflow: hidden; background: #12232E; display: flex; flex-direction: column">
+              <svg width="696" height="196" viewBox="0 0 696 196" role="img" aria-label="Patient education video: While you wait, staying safe" style="display: block; background: #EEF3F2; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif">
+
+                <!-- hospital room backdrop (tip scenes) -->
+                <sc-if value="{{v.wall}}" hint-placeholder-val="{{false}}">
+                  <g>
+                    <rect x="0" y="0" width="696" height="152" fill="#EEF3F2"></rect>
+                    <rect x="0" y="0" width="696" height="6" fill="#3FC1C0"></rect>
+                    <rect x="0" y="120" width="696" height="32" fill="#E2EAE8"></rect>
+                    <line x1="0" y1="120" x2="696" y2="120" stroke="#C5D3D0" stroke-width="2"></line>
+                    <rect x="0" y="152" width="696" height="44" fill="#CBD7D4"></rect>
+                    <line x1="0" y1="152" x2="696" y2="152" stroke="#9FB8B6" stroke-width="3"></line>
+                    <text x="684" y="26" text-anchor="end" font-size="11" font-weight="700" fill="#46565F" opacity="0.75" letter-spacing="1">[HOSPITAL NAME] · PATIENT EDUCATION</text>
+                  </g>
+                </sc-if>
+
+                <!-- intro -->
+                <sc-if value="{{v.intro}}" hint-placeholder-val="{{true}}">
+                  <g>
+                    <rect x="0" y="0" width="696" height="196" fill="#0F5F63"></rect>
+                    <circle cx="348" cy="62" r="{{v.logoR}}" fill="none" stroke="#3FC1C0" stroke-width="6"></circle>
+                    <path d="M348 46v32M332 62h32" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" opacity="{{v.logoO}}"></path>
+                    <text x="348" y="122" text-anchor="middle" font-size="24" font-weight="700" fill="#FFFFFF" opacity="{{v.textO}}">[HOSPITAL NAME]</text>
+                    <text x="348" y="146" text-anchor="middle" font-size="15" fill="#CDE6E4" letter-spacing="2" opacity="{{v.textO}}">PATIENT EDUCATION · WHILE YOU WAIT</text>
+                  </g>
+                </sc-if>
+
+                <!-- tip 1: hand hygiene -->
+                <sc-if value="{{v.t1}}" hint-placeholder-val="{{false}}">
+                  <g>
+                    <rect x="{{v.mirX}}" y="34" width="54" height="50" rx="4" fill="#DDEBF2" stroke="#9FB8B6" stroke-width="3"></rect>
+                    <path d="{{v.mirShine}}" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"></path>
+                    <rect x="{{v.cabX}}" y="122" width="66" height="30" fill="#B9CFD0"></rect>
+                    <rect x="{{v.sinkX}}" y="112" width="74" height="10" rx="3" fill="#9FB8B6"></rect>
+                    <path d="{{v.faucet}}" fill="none" stroke="#46565F" stroke-width="5" stroke-linecap="round"></path>
+                    <circle cx="{{v.b1x}}" cy="{{v.b1y}}" r="{{v.b1r}}" fill="#FFFFFF" stroke="#7BA7E0" stroke-width="2" opacity="{{v.bubO}}"></circle>
+                    <circle cx="{{v.b2x}}" cy="{{v.b2y}}" r="{{v.b2r}}" fill="#FFFFFF" stroke="#7BA7E0" stroke-width="2" opacity="{{v.bubO}}"></circle>
+                    <circle cx="{{v.b3x}}" cy="{{v.b3y}}" r="{{v.b3r}}" fill="#FFFFFF" stroke="#7BA7E0" stroke-width="2" opacity="{{v.bubO}}"></circle>
+                    <rect x="440" y="54" width="26" height="40" rx="5" fill="#FFFFFF" stroke="#46565F" stroke-width="2"></rect>
+                    <path d="M453 64c-4 6-6 9-6 12a6 6 0 0 0 12 0c0-3-2-6-6-12z" fill="#7BA7E0"></path>
+                    <text x="453" y="110" text-anchor="middle" font-size="10" fill="#46565F">Sanitizer</text>
+                    <rect x="520" y="44" width="150" height="70" rx="10" fill="#FFFFFF" stroke="#0F5F63" stroke-width="3"></rect>
+                    <text x="595" y="70" text-anchor="middle" font-size="13" fill="#46565F">scrub with soap</text>
+                    <text x="595" y="100" text-anchor="middle" font-size="26" font-weight="700" fill="#0F5F63">{{v.count}} sec</text>
+                  </g>
+                </sc-if>
+
+                <!-- tip 2: ask before eating or drinking -->
+                <sc-if value="{{v.t2}}" hint-placeholder-val="{{false}}">
+                  <g>
+                    <path d="{{v.chair2}}" fill="none" stroke="#9FB8B6" stroke-width="5" stroke-linejoin="round"></path>
+                    <path d="{{v.chair}}" fill="none" stroke="#46565F" stroke-width="5" stroke-linejoin="round"></path>
+                    <rect x="{{v.cupX}}" y="{{v.cupY}}" width="11" height="14" rx="2" fill="#7BA7E0"></rect>
+                    <rect x="470" y="96" width="40" height="56" rx="4" fill="#DDE5E3" stroke="#9FB8B6" stroke-width="2"></rect>
+                    <rect x="476" y="58" width="28" height="38" rx="7" fill="#BFE0F5" stroke="#7BA7E0" stroke-width="2"></rect>
+                    <rect x="522" y="66" width="140" height="44" rx="6" fill="#FFFFFF" stroke="#B83A0E" stroke-width="3"></rect>
+                    <text x="592" y="85" text-anchor="middle" font-size="13" font-weight="700" fill="#8A3410">ASK A NURSE</text>
+                    <text x="592" y="101" text-anchor="middle" font-size="12" fill="#8A3410">before eating or drinking</text>
+                    <g opacity="{{v.bubO2}}">
+                      <rect x="{{v.bubX}}" y="30" width="150" height="34" rx="12" fill="#FFFFFF" stroke="#12232E" stroke-width="2"></rect>
+                      <text x="{{v.bubTX}}" y="52" text-anchor="middle" font-size="15" font-weight="700" fill="#12232E">Is it OK to drink?</text>
+                    </g>
+                  </g>
+                </sc-if>
+
+                <!-- tip 3: warning signs + call for help -->
+                <sc-if value="{{v.t3}}" hint-placeholder-val="{{false}}">
+                  <g>
+                    <rect x="{{v.btnPlateX}}" y="62" width="36" height="36" rx="6" fill="#FFFFFF" stroke="#46565F" stroke-width="2"></rect>
+                    <circle cx="{{v.btnX}}" cy="80" r="11" fill="{{v.btnFill}}"></circle>
+                    <text x="{{v.btnX}}" y="112" text-anchor="middle" font-size="10" font-weight="700" fill="#8A3410">HELP</text>
+                    <circle cx="{{v.st1x}}" cy="{{v.st1y}}" r="3.5" fill="#F2B544"></circle>
+                    <circle cx="{{v.st2x}}" cy="{{v.st2y}}" r="3.5" fill="#F2B544"></circle>
+                    <circle cx="{{v.st3x}}" cy="{{v.st3y}}" r="3.5" fill="#F2B544"></circle>
+                    <g opacity="{{v.cardO}}">
+                      <rect x="420" y="36" width="256" height="112" rx="10" fill="#FFFFFF" stroke="#B83A0E" stroke-width="3"></rect>
+                      <rect x="420" y="36" width="256" height="26" rx="10" fill="#B83A0E"></rect>
+                      <rect x="420" y="50" width="256" height="12" fill="#B83A0E"></rect>
+                      <text x="434" y="54" font-size="13" font-weight="700" fill="#FFFFFF">TELL STAFF RIGHT AWAY IF YOU HAVE:</text>
+                      <text x="436" y="82" font-size="14" fill="#12232E" opacity="{{v.w1}}">• New or worse chest pain</text>
+                      <text x="436" y="101" font-size="14" fill="#12232E" opacity="{{v.w2}}">• Trouble breathing</text>
+                      <text x="436" y="120" font-size="14" fill="#12232E" opacity="{{v.w3}}">• Feeling faint or confused</text>
+                      <text x="436" y="139" font-size="14" fill="#12232E" opacity="{{v.w4}}">• Bleeding that won't stop</text>
+                    </g>
+                    <sc-if value="{{v.nurseOn}}" hint-placeholder-val="{{false}}">
+                      <g transform="translate({{v.nurseX}} 152) scale(0.85)">
+                        <circle cx="0" cy="-95" r="14" fill="#FFFFFF" stroke="#0F5F63" stroke-width="4"></circle>
+                        <path d="M-6 -95h12M0 -101v12" stroke="#B83A0E" stroke-width="3"></path>
+                        <line x1="0" y1="-81" x2="0" y2="-40" stroke="#0F5F63" stroke-width="5" stroke-linecap="round"></line>
+                        <polyline points="{{v.nArm1}}" fill="none" stroke="#0F5F63" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                        <polyline points="{{v.nArm2}}" fill="none" stroke="#0F5F63" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                        <polyline points="{{v.nLeg1}}" fill="none" stroke="#0F5F63" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                        <polyline points="{{v.nLeg2}}" fill="none" stroke="#0F5F63" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                      </g>
+                    </sc-if>
+                  </g>
+                </sc-if>
+
+                <!-- the patient (tip scenes) -->
+                <sc-if value="{{v.wall}}" hint-placeholder-val="{{false}}">
+                  <g transform="translate({{v.fx}} {{v.fy}}) rotate({{v.rot}}) scale(0.85)">
+                    <circle cx="0" cy="-95" r="14" fill="#FFFFFF" stroke="#12232E" stroke-width="4"></circle>
+                    <line x1="0" y1="-81" x2="0" y2="-40" stroke="#12232E" stroke-width="4" stroke-linecap="round"></line>
+                    <polyline points="{{v.arm1}}" fill="none" stroke="#12232E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                    <polyline points="{{v.arm2}}" fill="none" stroke="#12232E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                    <polyline points="{{v.leg1}}" fill="none" stroke="#12232E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                    <polyline points="{{v.leg2}}" fill="none" stroke="#12232E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                  </g>
+                  <rect x="12" y="12" width="{{v.tabW}}" height="26" rx="6" fill="#0F5F63"></rect>
+                  <text x="24" y="30" font-size="13" font-weight="700" fill="#FFFFFF" letter-spacing="1">{{v.chapter}}</text>
+                </sc-if>
+
+                <!-- outro -->
+                <sc-if value="{{v.outro}}" hint-placeholder-val="{{false}}">
+                  <g>
+                    <rect x="0" y="0" width="696" height="196" fill="#0F5F63"></rect>
+                    <text x="348" y="56" text-anchor="middle" font-size="26" font-weight="700" fill="#FFFFFF">Questions? Ask any staff member.</text>
+                    <text x="348" y="86" text-anchor="middle" font-size="16" fill="#CDE6E4">Call for help is always on the H.A.L.O. screen and your phone.</text>
+                    <circle cx="258" cy="124" r="14" fill="none" stroke="#3FC1C0" stroke-width="4"></circle>
+                    <path d="M258 116v16M250 124h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path>
+                    <text x="282" y="130" font-size="15" font-weight="700" fill="#FFFFFF" letter-spacing="1">[HOSPITAL NAME] PATIENT EDUCATION</text>
+                  </g>
+                </sc-if>
+
+                <!-- scene fades -->
+                <rect x="0" y="0" width="696" height="196" fill="#000000" opacity="{{v.fade}}"></rect>
+
+                <!-- closed captions -->
+                <rect x="0" y="160" width="696" height="36" fill="#000000" opacity="0.78"></rect>
+                <text x="348" y="184" text-anchor="middle" font-size="16" font-weight="700" fill="#FFFFFF">{{v.caption}}</text>
+              </svg>
+              <div style="height: 48px; box-sizing: border-box; padding: 0 12px; display: flex; align-items: center; gap: 14px; color: #FFFFFF">
+                <button onClick="{{togglePlay}}" aria-label="{{v.playLabel}}" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #2C3D46; cursor: pointer; display: flex; align-items: center; justify-content: center">
+                  <sc-if value="{{v.playing}}" hint-placeholder-val="{{true}}">
+                    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="3" width="4" height="14" fill="#FFFFFF"></rect><rect x="12" y="3" width="4" height="14" fill="#FFFFFF"></rect></svg>
+                  </sc-if>
+                  <sc-if value="{{v.paused}}" hint-placeholder-val="{{false}}">
+                    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3l11 7-11 7z" fill="#FFFFFF"></path></svg>
+                  </sc-if>
+                </button>
+                <div style="flex-grow: 1; height: 6px; border-radius: 3px; background: #3A4C56"><div style="{{v.barStyle}}"></div></div>
+                <div style="font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap">{{v.timeText}} / 0:30</div>
+                <div style="font-size: 12px; font-weight: 700; border: 1px solid #C9D6DC; border-radius: 4px; padding: 1px 5px">CC</div>
+                <button onClick="{{closeVideo}}" aria-label="Close video" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #2C3D46; cursor: pointer; display: flex; align-items: center; justify-content: center">
+                  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"></path></svg>
+                </button>
+              </div>
+            </div>
+          </section>
+        </sc-if>
+      </sc-if>
+
+      <!-- ============ HELP MODE ============ -->
+      <sc-if value="{{helpMode}}" hint-placeholder-val="{{false}}">
+        <section style="padding: 8px 32px 0 32px; display: flex; flex-direction: column; gap: 16px">
+          <div role="alert" style="{{alarmStyle}}">
+            <div style="display: flex; align-items: center; gap: 28px">
+              <div style="{{bellStyle}}">
+                <svg width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path><path d="M2 5l2 1M22 5l-2 1M3 10H1M23 10h-2"></path></svg>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <div style="font-size: 18px; font-weight: 700; letter-spacing: 2px; opacity: 0.9">EMERGENCY ALERT SENT</div>
+                <div style="font-size: 44px; font-weight: 700; line-height: 1.05">{{helpHeadline}}</div>
+                <div style="font-size: 20px; line-height: 1.35">{{helpSub}}</div>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+              <div style="background: rgba(0,0,0,0.22); border-radius: 10px; padding: 12px 14px"><div style="font-size: 14px; opacity: 0.85">Alert sent</div><div style="font-size: 24px; font-weight: 700">{{helpAt}}</div></div>
+              <div style="background: rgba(0,0,0,0.22); border-radius: 10px; padding: 12px 14px"><div style="font-size: 14px; opacity: 0.85">Nurse arriving in</div><div style="font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums">{{helpEta}}</div></div>
+              <div style="background: rgba(0,0,0,0.22); border-radius: 10px; padding: 12px 14px"><div style="font-size: 14px; opacity: 0.85">Your place in line</div><div style="font-size: 24px; font-weight: 700">Kept</div></div>
+            </div>
+            <div style="display: flex; gap: 12px">
+              <button onClick="{{toggleMute}}" style="height: 56px; padding: 0 22px; border: 2px solid #FFFFFF; border-radius: 12px; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 19px; font-weight: 700; cursor: pointer">{{muteLabel}}</button>
+              <button onClick="{{cancelHelp}}" style="height: 56px; padding: 0 22px; border: 0; border-radius: 12px; background: #FFFFFF; color: #8E2A08; font-family: inherit; font-size: 19px; font-weight: 700; cursor: pointer; margin-left: auto">I'm OK, cancel alert</button>
+            </div>
+          </div>
+          <!-- map moved down -->
+          <div style="background: #FFFFFF; border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+            <div style="font-size: 18px; font-weight: 700">Hospital map · Floor 1 <span style="font-weight: 400; color: #46565F; font-size: 15px">· Stay where you are. A nurse is coming to you.</span></div>
+            <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; font-size: 14px; font-weight: 700">
+              <div style="background: #0F5F63; color: #FFFFFF; border-radius: 8px; padding: 10px">You are here</div>
+              <div style="background: #CDE6E4; border-radius: 8px; padding: 10px">Nurse station</div>
+              <div style="background: #CDE6E4; border-radius: 8px; padding: 10px">Restrooms</div>
+              <div style="background: #CDE6E4; border-radius: 8px; padding: 10px">Pharmacy</div>
+              <div style="background: #CDE6E4; border-radius: 8px; padding: 10px">Exit</div>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+
+      <!-- ============ MAP MODE ============ -->
+      <sc-if value="{{mapMode}}" hint-placeholder-val="{{false}}">
+        <section style="padding: 8px 32px 0 32px; display: flex; flex-direction: column; gap: 12px">
+          <div style="background: #FFFFFF; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: inset 0 0 0 2px #0F5F63">
+            <div style="display: flex; align-items: center; justify-content: space-between">
+              <h2 style="margin: 0; font-size: 24px">Hospital map · Floor 1 · detailed</h2>
+              <button onClick="{{closeMap}}" style="height: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: #12232E; color: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px">
+                <svg width="14" height="14" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"></path></svg>Close map
+              </button>
+            </div>
+            <svg width="660" height="260" viewBox="0 0 660 260" role="img" aria-label="Detailed floor plan with directions" style="display: block; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif">
+              <defs>
+                <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#E3E3E3"></rect><line x1="0" y1="0" x2="0" y2="8" stroke="#B5B5B5" stroke-width="3"></line></pattern>
+              </defs>
+              <rect x="2" y="2" width="656" height="256" rx="8" fill="#F4F6F5" stroke="#12232E" stroke-width="3"></rect>
+              <rect x="8" y="110" width="644" height="36" fill="#E6ECEA"></rect>
+              <text x="330" y="133" text-anchor="middle" font-size="12" fill="#6B7A82" letter-spacing="3">MAIN CORRIDOR</text>
+
+              <rect x="8" y="8" width="220" height="100" rx="6" fill="{{rf.here}}" stroke="#0F5F63" stroke-width="2"></rect>
+              <text x="18" y="28" font-size="14" font-weight="700" fill="#FFFFFF">ER Waiting Room</text>
+              <rect x="232" y="8" width="92" height="100" rx="6" fill="#DDE5E3" stroke="#9FB8B6" stroke-width="1.5"></rect>
+              <text x="242" y="28" font-size="13" font-weight="700" fill="#46565F">Triage</text>
+              <text x="242" y="44" font-size="11" fill="#46565F">Staff only</text>
+              <rect x="328" y="8" width="96" height="100" rx="6" fill="#DDE5E3" stroke="#9FB8B6" stroke-width="1.5"></rect>
+              <text x="338" y="28" font-size="13" font-weight="700" fill="#46565F">Nurse station</text>
+              <path d="M370 64h12M376 58v12" stroke="#B83A0E" stroke-width="3"></path>
+              <rect x="428" y="8" width="88" height="100" rx="6" fill="{{rf.restrooms}}" stroke="{{rs.restrooms}}" stroke-width="{{rw.restrooms}}"></rect>
+              <text x="438" y="28" font-size="13" font-weight="700" fill="{{rt.restrooms}}">Restrooms</text>
+              <text x="438" y="44" font-size="11" fill="{{rt.restrooms}}">M · W · Accessible</text>
+              <rect x="520" y="8" width="70" height="100" rx="6" fill="{{rf.vending}}" stroke="{{rs.vending}}" stroke-width="{{rw.vending}}"></rect>
+              <text x="528" y="28" font-size="13" font-weight="700" fill="{{rt.vending}}">Vending</text>
+              <rect x="594" y="8" width="58" height="100" rx="6" fill="{{rf.elevators}}" stroke="{{rs.elevators}}" stroke-width="{{rw.elevators}}"></rect>
+              <text x="600" y="28" font-size="12" font-weight="700" fill="{{rt.elevators}}">Elevators</text>
+
+              <rect x="8" y="148" width="100" height="104" rx="6" fill="{{rf.exit}}" stroke="{{rs.exit}}" stroke-width="{{rw.exit}}"></rect>
+              <text x="18" y="168" font-size="13" font-weight="700" fill="{{rt.exit}}">Exit &amp;</text>
+              <text x="18" y="184" font-size="13" font-weight="700" fill="{{rt.exit}}">Parking</text>
+              <rect x="112" y="148" width="124" height="104" rx="6" fill="{{rf.pharmacy}}" stroke="{{rs.pharmacy}}" stroke-width="{{rw.pharmacy}}"></rect>
+              <text x="122" y="168" font-size="13" font-weight="700" fill="{{rt.pharmacy}}">Pharmacy</text>
+              <text x="122" y="184" font-size="11" fill="{{rt.pharmacy}}">Until 9 PM</text>
+              <rect x="240" y="148" width="124" height="104" rx="6" fill="url(#hatch)" stroke="{{rs.radiology}}" stroke-width="{{rw.radiology}}" stroke-dasharray="5 4"></rect>
+              <text x="250" y="168" font-size="13" font-weight="700" fill="#4A4A4A">Radiology</text>
+              <text x="250" y="184" font-size="11" fill="#4A4A4A">Closed · 7 AM</text>
+              <rect x="368" y="148" width="186" height="104" rx="6" fill="{{rf.cafeteria}}" stroke="{{rs.cafeteria}}" stroke-width="{{rw.cafeteria}}"></rect>
+              <text x="378" y="168" font-size="13" font-weight="700" fill="{{rt.cafeteria}}">Cafeteria</text>
+              <text x="378" y="184" font-size="11" fill="{{rt.cafeteria}}">Until 8 PM</text>
+              <rect x="558" y="148" width="94" height="104" rx="6" fill="{{rf.chapel}}" stroke="{{rs.chapel}}" stroke-width="{{rw.chapel}}"></rect>
+              <text x="568" y="168" font-size="13" font-weight="700" fill="{{rt.chapel}}">Chapel</text>
+
+              <path d="{{route}}" fill="none" stroke="#B83A0E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 8" stroke-dashoffset="{{dashOff}}"></path>
+              <circle cx="{{routeEndX}}" cy="{{routeEndY}}" r="{{routeEndR}}" fill="#B83A0E"></circle>
+
+              <circle cx="130" cy="70" r="{{pulseR}}" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="{{pulseO}}"></circle>
+              <circle cx="130" cy="70" r="9" fill="#FFFFFF" stroke="#12232E" stroke-width="3"></circle>
+              <text x="146" y="75" font-size="13" font-weight="700" fill="#FFFFFF">You are here</text>
+            </svg>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              <sc-for list="{{dests}}" as="d" hint-placeholder-count="8">
+                <button onClick="{{d.pick}}" style="{{d.style}}">{{d.label}}</button>
+              </sc-for>
+            </div>
+            <div aria-live="polite" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #EEF3F2; border-radius: 10px; padding: 10px 14px">
+              <div style="display: flex; flex-direction: column">
+                <div style="font-size: 19px; font-weight: 700">{{destName}}</div>
+                <div style="font-size: 15px; color: #2E3E47">{{destInfo}}</div>
+              </div>
+              <div style="font-size: 20px; font-weight: 700; color: #0F5F63; white-space: nowrap">{{destWalk}}</div>
+            </div>
+          </div>
+          <button onClick="{{pressHelp}}" aria-label="Call for help" style="height: 60px; border: 0; border-radius: 14px; background: {{help}}; color: #FFFFFF; font-family: inherit; font-size: 22px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+            Call for help
+          </button>
+        </section>
+      </sc-if>
+
+      <!-- Footer: cycle + scan to phone -->
+      <footer style="margin-top: auto; padding: 18px 32px; background: #E6ECEA; display: flex; align-items: center; justify-content: space-between">
+        <div style="display: flex; align-items: center; gap: 14px">
+          <div style="width: 88px; height: 88px; background: #FFFFFF; border: 2px dashed #46565F; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #46565F">[QR]</div>
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div style="font-size: 20px; font-weight: 700">Take this screen with you</div>
+            <div style="font-size: 16px; color: #46565F">Scan to see the same info on your phone</div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px">
+          <div style="display: flex; gap: 6px">
+            <span style="width: 28px; height: 8px; border-radius: 4px; background: #0F5F63"></span>
+            <span style="width: 8px; height: 8px; border-radius: 4px; background: #9AAAB0"></span>
+            <span style="width: 8px; height: 8px; border-radius: 4px; background: #9AAAB0"></span>
+            <span style="width: 8px; height: 8px; border-radius: 4px; background: #9AAAB0"></span>
+          </div>
+          <div style="font-size: 14px; color: #46565F">Español · 中文 · Tiếng Việt</div>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Plinth -->
+  <div style="width: 840px; height: 120px; background: #1C2A31; border-top: 2px solid #2C3D46"></div>
+  <div style="width: 900px; height: 36px; background: #151F25; border-radius: 6px"></div>
+  <div style="margin-top: 22px; font-size: 16px; color: #46565F">Freestanding tower, same screen on all four sides</div>
+</div></template>
+<template id="phoneTpl"><div style="width: 390px; min-height: 1500px; box-sizing: border-box; background: #F4F6F5; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #12232E; display: flex; flex-direction: column">
+
+  <!-- Header -->
+  <header style="padding: 20px 20px 18px 20px; background: #12232E; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <svg width="34" height="34" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17" fill="none" stroke="{{halo}}" stroke-width="4"></circle><path d="M22 14v16M14 22h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path></svg>
+      <div style="display: flex; flex-direction: column">
+        <div style="font-size: 22px; font-weight: 700; letter-spacing: 2px">H.A.L.O.</div>
+        <div style="font-size: 13px; color: #C9D6DC">[HOSPITAL NAME] · Emergency</div>
+      </div>
+    </div>
+    <div style="font-size: 13px; color: #C9D6DC; text-align: right; max-width: 110px">{{sinceText}}</div>
+  </header>
+
+  <!-- Your ticket -->
+  <section style="padding: 20px 20px 0 20px">
+    <div style="background: #FFFFFF; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: inset 0 0 0 2px #0F5F63">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <div style="font-size: 14px; font-weight: 700; letter-spacing: 1px; color: #46565F">YOUR TICKET</div>
+        <div style="font-size: 14px; color: #46565F">{{me.checkin}}</div>
+      </div>
+      <div style="display: flex; align-items: flex-end; justify-content: space-between">
+        <div style="font-size: 44px; font-weight: 700; line-height: 1">A118</div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end">
+          <div style="font-size: 14px; color: #46565F">Estimated wait</div>
+          <div style="font-size: 40px; font-weight: 700; line-height: 1; color: #0F5F63; white-space: nowrap">{{me.wait}}</div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+        <div style="background: #EEF3F2; border-radius: 10px; padding: 10px 12px"><div style="font-size: 22px; font-weight: 700">{{me.ahead}}</div><div style="font-size: 14px; color: #46565F">people ahead</div></div>
+        <div style="background: #EEF3F2; border-radius: 10px; padding: 10px 12px"><div style="font-size: 22px; font-weight: 700">{{me.waited}}</div><div style="font-size: 14px; color: #46565F">waited so far</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Call for help -->
+  <section style="padding: 16px 20px 0 20px">
+    <button onClick="{{pressHelp}}" aria-label="Call for help" style="width: 100%; border: 0; border-radius: 16px; background: {{phoneHelpBg}}; color: #FFFFFF; font-family: inherit; padding: 18px 20px; display: flex; align-items: center; gap: 16px; text-align: left; cursor: pointer">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+      <span style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 22px; font-weight: 700">{{phoneHelpTitle}}</span>
+        <span style="font-size: 15px; line-height: 1.3">{{phoneHelpSub}}</span>
+      </span>
+    </button>
+  </section>
+
+  <!-- Wait list -->
+  <section style="padding: 24px 20px 0 20px; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; justify-content: space-between">
+      <h2 style="margin: 0; font-size: 22px">Wait list</h2>
+      <div style="font-size: 14px; color: #46565F">Tap to see why</div>
+    </div>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+      <button onClick="{{r.onTap}}" style="{{r.rowStyle}}">
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <div style="font-size: 20px; font-weight: 700">{{r.ticket}}<sc-if value="{{r.you}}" hint-placeholder-val="{{false}}"><span style="margin-left: 8px; font-size: 12px; font-weight: 700; color: #FFFFFF; background: #0F5F63; border-radius: 4px; padding: 2px 6px; vertical-align: middle">YOU</span></sc-if></div>
+            <div style="font-size: 14px; color: #2E3E47">{{r.status}}</div>
+          </div>
+          <div style="font-size: 20px; font-weight: 700">{{r.wait}}</div>
+        </div>
+        <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #B9CFD0; font-size: 15px; line-height: 1.4; text-align: left; width: 100%">{{r.reason}}</div>
+        </sc-if>
+      </button>
+    </sc-for>
+  </section>
+
+  <!-- Map -->
+  <section style="padding: 24px 20px 0 20px; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <h2 style="margin: 0; font-size: 22px">Hospital map</h2>
+      <div style="display: flex; gap: 10px; font-size: 13px; color: #46565F">
+        <span style="display: flex; align-items: center; gap: 4px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #CDE6E4"></span>Open</span>
+        <span style="display: flex; align-items: center; gap: 4px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #E3E3E3; border: 1px dashed #6B6B6B"></span>Closed</span>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border-radius: 14px; padding: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 64px 64px 64px 64px; gap: 6px; font-size: 13px; font-weight: 700">
+      <div style="grid-column: span 2; grid-row: span 2; background: #0F5F63; color: #FFFFFF; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; justify-content: space-between">
+        <span>ER Waiting Room</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 12px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #FFFFFF"></span>You are here</span>
+      </div>
+      <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Restrooms<div style="font-weight: 400; font-size: 12px">1 min walk</div></div>
+      <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Vending<div style="font-weight: 400; font-size: 12px">24 hr</div></div>
+      <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Pharmacy<div style="font-weight: 400; font-size: 12px">Until 9 PM</div></div>
+      <div style="background: #E3E3E3; border: 1px dashed #6B6B6B; color: #4A4A4A; border-radius: 8px; padding: 8px">Radiology<div style="font-weight: 400; font-size: 12px">Closed</div></div>
+      <div style="grid-column: span 2; background: #CDE6E4; border-radius: 8px; padding: 8px">Cafeteria<div style="font-weight: 400; font-size: 12px">Open until 8 PM</div></div>
+      <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Chapel</div>
+      <div style="grid-column: span 2; background: #CDE6E4; border-radius: 8px; padding: 8px">Exit &amp; Parking</div>
+    </div>
+  </section>
+
+  <!-- Videos -->
+  <section style="padding: 24px 20px 0 20px; display: flex; flex-direction: column; gap: 10px">
+    <h2 style="margin: 0; font-size: 22px">While you wait</h2>
+    <div style="background: #FFFFFF; border-radius: 14px; overflow: hidden">
+      <div style="height: 170px; background: #12232E; display: flex; align-items: center; justify-content: center; position: relative">
+        <svg width="52" height="52" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="none" stroke="#FFFFFF" stroke-width="1.5"></circle><path d="M10 8l6 4-6 4z" fill="#FFFFFF"></path></svg>
+        <div style="position: absolute; left: 12px; right: 12px; bottom: 12px; height: 4px; border-radius: 2px; background: #3A4C56"><div style="width: 38%; height: 4px; border-radius: 2px; background: {{halo}}"></div></div>
+      </div>
+      <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-size: 18px; font-weight: 700">While you wait: staying safe</div>
+        <div style="font-size: 14px; color: #46565F">Captions on · Plays on the H.A.L.O. kiosk</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="margin-top: auto; padding: 20px; display: flex; justify-content: space-between; font-size: 14px; color: #46565F">
+    <span>Same info as the H.A.L.O. kiosk</span>
+    <a href="#">Español</a>
+  </footer>
+</div></template>
+<script type="text/x-dc" id="kioskLogic" data-props='{"halo":{"editor":"color","default":"#3FC1C0","options":["#3FC1C0","#7BA7E0","#F2B544"]},"help":{"editor":"color","default":"#B83A0E","options":["#B83A0E","#9A3412","#1D4ED8"]},"sound":{"editor":"boolean","default":true},"$preview":{"width":920,"height":1970}}'>
+class Component extends DCLogic {
+  initQueue() {
+    return [
+      { ticket: 'A112', mins: 0, kind: 'Waiting', reason: '' },
+      { ticket: 'A114', mins: 5, kind: 'Waiting', reason: '' },
+      { ticket: 'A115', mins: 20, kind: 'Waiting', reason: 'Two patients with more urgent needs arrived by ambulance at ' + this.fmtTime(new Date(Date.now() - 15 * 60000)) + '. Your wait went up by 10 min.' },
+      { ticket: 'A117', mins: 35, kind: 'Waiting for test results', reason: 'Your lab results are being processed. A nurse will call you back.' },
+      { ticket: 'A118', mins: 45, kind: 'Waiting', reason: 'Patients are seen by how urgent their needs are, not only by arrival time.' },
+      { ticket: 'A120', mins: 70, kind: 'Waiting', reason: 'Patients are seen by how urgent their needs are, not only by arrival time.' }
+    ];
+  }
+
+  componentDidMount() {
+    this.setState({ queue: this.initQueue(), nextNum: 121, since: 0, nextUpd: 8, tick: 0, now: new Date(), mode: 'normal', openTicket: 'A115', dest: 'restrooms', vt: 0 });
+    this.timer = setInterval(() => this.step(), 100);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.timer);
+    try { if (this.ac) this.ac.close(); } catch (e) {}
+  }
+
+  fmtTime(d, secs) {
+    const h = d.getHours() % 12 || 12;
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const s = String(d.getSeconds()).padStart(2, '0');
+    const ap = d.getHours() < 12 ? 'AM' : 'PM';
+    return secs ? h + ':' + m + ':' + s + ' ' + ap : h + ':' + m + ' ' + ap;
+  }
+
+  fmtWait(m) {
+    if (m <= 0) return 'Now';
+    if (m < 60) return m + ' min';
+    const r = m % 60;
+    return Math.floor(m / 60) + ' hr' + (r ? ' ' + r + ' min' : '');
+  }
+
+  step() {
+    const s = this.state;
+    const tick = (s.tick || 0) + 1;
+    const upd = { tick };
+    const now = new Date();
+    if (!s.now || now.getSeconds() !== s.now.getSeconds()) {
+      upd.now = now;
+      upd.since = (s.since || 0) + 1;
+      if (upd.since >= (s.nextUpd || 12)) Object.assign(upd, this.mutate(now, tick));
+    }
+    if (s.playing) {
+      const vt = (s.vt || 0) + 0.1;
+      if (vt >= 30) { upd.vt = 30; upd.playing = false; upd.ended = true; } else upd.vt = vt;
+    }
+    if (s.mode === 'help' && !s.muted && tick % 20 === 0) this.beep(1);
+    this.setState(upd);
+  }
+
+  mutate(now, tick) {
+    const q = (this.state.queue || this.initQueue()).map((r) => ({ ...r }));
+    let next = this.state.nextNum || 121;
+    const t = this.fmtTime(now);
+    const roll = Math.random();
+    let msg, flash = null;
+    if (roll < 0.55) {
+      const called = q.shift();
+      q.forEach((r) => { r.mins = Math.max(5, r.mins - (5 + Math.floor(Math.random() * 4))); if (r.kind === 'Just checked in') r.kind = 'Waiting'; });
+      q[0].mins = 0;
+      const last = q[q.length - 1].mins;
+      const tk = 'A' + next;
+      q.push({ ticket: tk, mins: last + 10 + Math.floor(Math.random() * 10), kind: 'Just checked in', reason: 'You just checked in at ' + t + '. Your wait will update once triage is done.' });
+      next += 1 + Math.floor(Math.random() * 2);
+      msg = called.ticket + ' was called back. Everyone moved up.';
+      flash = tk;
+    } else if (roll < 0.8) {
+      q.forEach((r, i) => { if (i >= 2) { r.mins += 10; r.reason = 'Two patients with more urgent needs arrived by ambulance at ' + t + '. Your wait went up 10 min.'; } });
+      msg = 'Ambulance arrival at ' + t + '. Some waits went up.';
+    } else {
+      const i = 2 + Math.floor(Math.random() * (q.length - 2));
+      q[i].mins = Math.max(q[1].mins + 5, q[i].mins - 10);
+      q[i].reason = 'A room opened up at ' + t + '. Your wait went down.';
+      if (q[i].kind === 'Waiting for test results') { q[i].kind = 'Waiting'; q[i].reason = 'Your test results came back at ' + t + '. You are back in line.'; }
+      msg = q[i].ticket + ': a room opened up. Wait went down.';
+      flash = q[i].ticket;
+    }
+    const head = q[0];
+    const rest = q.slice(1).sort((a, b) => a.mins - b.mins);
+    for (let i = 1; i < rest.length; i++) if (rest[i].mins < rest[i - 1].mins + 5) rest[i].mins = rest[i - 1].mins + 5;
+    return { queue: [head, ...rest], nextNum: next, since: 0, nextUpd: 10 + Math.floor(Math.random() * 9), event: msg, flashTicket: flash, flashUntil: tick + 50 };
+  }
+
+  beep(n) {
+    if (this.props.sound === false) return;
+    try {
+      const C = window.AudioContext || window.webkitAudioContext;
+      if (!C) return;
+      this.ac = this.ac || new C();
+      const ac = this.ac;
+      if (ac.state === 'suspended') ac.resume();
+      for (let k = 0; k < n; k++) {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'square';
+        o.frequency.value = k % 2 ? 660 : 880;
+        o.connect(g); g.connect(ac.destination);
+        const t0 = ac.currentTime + k * 0.3;
+        g.gain.setValueAtTime(0.0001, ac.currentTime);
+        g.gain.setValueAtTime(0.06, t0);
+        g.gain.setValueAtTime(0.0001, t0 + 0.18);
+        o.start(t0); o.stop(t0 + 0.2);
+      }
+    } catch (e) {}
+  }
+
+  video(vt, playing, ended) {
+    const P = (pts) => pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    const clamp = (x) => Math.min(1, Math.max(0, x));
+    const v = {
+      intro: vt < 4, t1: vt >= 4 && vt < 11, t2: vt >= 11 && vt < 18, t3: vt >= 18 && vt < 25, outro: vt >= 25,
+      ended, playing, paused: !playing
+    };
+    v.wall = v.t1 || v.t2 || v.t3;
+    v.playLabel = playing ? 'Pause video' : 'Play video';
+    const cuts = [0, 4, 11, 18, 25, 30];
+    let dist = 99;
+    cuts.forEach((c) => { dist = Math.min(dist, Math.abs(vt - c)); });
+    v.fade = (Math.max(0, 1 - dist / 0.35) * 0.95).toFixed(2);
+
+    let fx = 260, fy = 152, rot = 0, arm1, arm2, leg1, leg2;
+    const stand = () => { leg1 = P([[0, -40], [-6, -20], [-10, 0]]); leg2 = P([[0, -40], [6, -20], [10, 0]]); };
+    const walk = (t) => {
+      const sw = Math.sin(t * 7) * 14;
+      leg1 = P([[0, -40], [sw / 2, -20], [sw, 0]]);
+      leg2 = P([[0, -40], [-sw / 2, -20], [-sw, 0]]);
+      arm1 = P([[0, -70], [-sw * 0.5, -56], [-sw * 0.8, -42]]);
+      arm2 = P([[0, -70], [sw * 0.5, -56], [sw * 0.8, -42]]);
+    };
+
+    if (v.intro) {
+      const p = clamp(vt / 1.4);
+      v.logoR = (30 * (1 - Math.pow(1 - p, 3))).toFixed(1);
+      v.logoO = clamp((vt - 0.8) / 0.6).toFixed(2);
+      v.textO = clamp((vt - 1.4) / 0.8).toFixed(2);
+      v.caption = vt < 1.6 ? '' : 'Welcome. Here are three ways to stay safe while you wait.';
+    } else if (v.t1) {
+      const d = vt - 4;
+      v.chapter = 'TIP 1 OF 3 · CLEAN HANDS'; v.tabW = 232;
+      if (d < 1.5) { fx = 80 + (d / 1.5) * 180; walk(vt); v.bubO = 0; v.count = 20; }
+      else {
+        fx = 260; stand();
+        const o = Math.sin(vt * 14) * 6;
+        arm1 = P([[0, -70], [22, -62], [40 + o, -62]]);
+        arm2 = P([[0, -70], [20, -66], [44 - o, -60]]);
+        v.bubO = 1;
+        v.count = Math.max(0, 20 - Math.floor((d - 1.5) * 4));
+      }
+      const sx = 260;
+      v.mirX = sx + 28; v.mirShine = 'M' + (sx + 36) + ' 46 l10 -6';
+      v.cabX = sx + 22; v.sinkX = sx + 18;
+      v.faucet = 'M' + (sx + 72) + ' 112 V96 H' + (sx + 52) + ' V102';
+      const b = (k) => ({ x: sx + 30 + k * 9 + Math.sin(vt * 5 + k) * 4, y: 96 - ((vt * 18 + k * 11) % 26), r: 3 + ((vt * 3 + k) % 3) });
+      const b1 = b(0), b2 = b(1), b3 = b(2);
+      Object.assign(v, { b1x: b1.x, b1y: b1.y, b1r: b1.r, b2x: b2.x, b2y: b2.y, b2r: b2.r, b3x: b3.x, b3y: b3.y, b3r: b3.r });
+      v.caption = d < 2.8 ? 'Germs spread easily in a busy waiting room.' : 'Wash with soap for 20 seconds, or use hand sanitizer.';
+    } else if (v.t2) {
+      const d = vt - 11;
+      v.chapter = 'TIP 2 OF 3 · FOOD AND DRINK'; v.tabW = 262;
+      fx = 230; fy = 164;
+      leg1 = P([[0, -40], [28, -40], [28, -14]]);
+      leg2 = P([[0, -40], [24, -38], [22, -14]]);
+      const lift = d < 3.2 ? (Math.sin(d * 1.8) + 1) / 2 * 0.7 : 0.15;
+      const hy = -52 - lift * 16;
+      arm1 = P([[0, -70], [18, -60], [26, hy]]);
+      arm2 = P([[0, -70], [-10, -56], [-8, -44]]);
+      v.cupX = fx + 17; v.cupY = fy + hy * 0.85 - 12;
+      v.chair = 'M' + (fx - 14) + ' 132 H' + (fx + 30) + ' M' + (fx - 14) + ' 132 V92 M' + (fx - 10) + ' 132 V152 M' + (fx + 26) + ' 132 V152';
+      const c2 = fx - 80;
+      v.chair2 = 'M' + (c2 - 14) + ' 132 H' + (c2 + 30) + ' M' + (c2 - 14) + ' 132 V92 M' + (c2 - 10) + ' 132 V152 M' + (c2 + 26) + ' 132 V152';
+      v.bubX = fx + 30; v.bubTX = fx + 105;
+      v.bubO2 = clamp((d - 1.2) / 0.4).toFixed(2);
+      v.caption = d < 3.4 ? 'Some tests and treatments need an empty stomach.' : 'Please ask a nurse before you eat or drink anything.';
+    } else if (v.t3) {
+      const d = vt - 18;
+      v.chapter = 'TIP 3 OF 3 · FEELING WORSE?'; v.tabW = 262;
+      fx = 200; stand();
+      rot = d < 3.4 ? Math.sin(vt * 5) * 7 : 0;
+      const reach = clamp((d - 2.6) / 0.8);
+      arm1 = P([[0, -70], [20 + reach * 24, -72 - reach * 4], [30 + reach * 62, -64 - reach * 21]]);
+      arm2 = P([[0, -70], [-12, -56], [-16, -42]]);
+      v.btnPlateX = fx + 60; v.btnX = fx + 78;
+      v.btnFill = d > 3.4 && Math.floor(vt * 4) % 2 === 0 ? '#FF5A33' : '#B83A0E';
+      const dizzy = d < 3.6;
+      const st = (k) => ({ x: fx + Math.cos(vt * 4 + k * 2.1) * 20, y: 50 + Math.sin(vt * 4 + k * 2.1) * 5 });
+      const a = st(0), b2 = st(1), c = st(2);
+      Object.assign(v, { st1x: dizzy ? a.x : -20, st1y: a.y, st2x: dizzy ? b2.x : -20, st2y: b2.y, st3x: dizzy ? c.x : -20, st3y: c.y });
+      v.cardO = (d < 4.4 ? clamp(d / 0.4) : clamp(1 - (d - 4.4) / 0.4)).toFixed(2);
+      v.w1 = clamp((d - 0.4) / 0.3).toFixed(2);
+      v.w2 = clamp((d - 1.0) / 0.3).toFixed(2);
+      v.w3 = clamp((d - 1.6) / 0.3).toFixed(2);
+      v.w4 = clamp((d - 2.2) / 0.3).toFixed(2);
+      v.nurseOn = d > 4.6;
+      const np = clamp((d - 4.6) / 1.6);
+      v.nurseX = 720 - np * (720 - (fx + 120));
+      const nsw = np < 1 ? Math.sin(vt * 8) * 12 : 0;
+      v.nLeg1 = P([[0, -40], [nsw / 2, -20], [nsw, 0]]);
+      v.nLeg2 = P([[0, -40], [-nsw / 2, -20], [-nsw, 0]]);
+      v.nArm1 = P([[0, -70], [-16, -60], [np >= 1 ? -40 : -nsw * 0.8, np >= 1 ? -64 : -42]]);
+      v.nArm2 = P([[0, -70], [10, -56], [12, -42]]);
+      v.caption = d < 2.6 ? 'Tell staff right away if you start to feel worse.' : (d < 4.6 ? 'Press Call for help on the H.A.L.O. screen or your phone.' : 'A nurse will come to you. You keep your place in line.');
+    } else {
+      v.caption = 'Thank you for your patience. We will see you as soon as we can.';
+    }
+    if (ended) v.caption = 'Video finished. Press play to watch again.';
+    Object.assign(v, { fx, fy, rot: rot.toFixed(1), arm1, arm2, leg1, leg2 });
+    const secs = Math.floor(vt);
+    v.timeText = '0:' + String(secs).padStart(2, '0');
+    v.barStyle = 'width: ' + Math.min(100, (vt / 30) * 100).toFixed(1) + '%; height: 6px; border-radius: 3px; background: ' + (this.props.halo ?? '#3FC1C0');
+    return v;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const tick = s.tick || 0;
+    const halo = this.props.halo ?? '#3FC1C0';
+    const help = this.props.help ?? '#B83A0E';
+    const mode = s.mode || 'normal';
+    const flashOn = Math.floor(tick / 5) % 2 === 0;
+    const now = s.now || new Date();
+
+    // ---- wait list
+    const q = s.queue || this.initQueue();
+    const base = 'border: 0; font-family: inherit; color: #12232E; cursor: pointer; width: 100%; box-sizing: border-box; padding: 14px 20px; border-radius: 12px; display: flex; flex-direction: column; text-align: left; ';
+    const rows = q.map((r, i) => {
+      const open = r.ticket === s.openTicket;
+      const flashing = r.ticket === s.flashTicket && tick < (s.flashUntil || 0);
+      const status = i === 0 ? 'Being called now' : (i === 1 ? 'Next up' : r.kind);
+      const reason = i === 0 ? 'Head to the doors on your right. A staff member will meet you.' : (i === 1 ? 'A room is being cleaned for you.' : r.reason);
+      let bg = i === 0 ? 'background: #FFF1E8;' : 'background: #FFFFFF;';
+      if (flashing) bg = 'background: #FFF4C2; box-shadow: inset 0 0 0 2px #C99A00;';
+      if (open) bg = 'background: #DCEFED; box-shadow: inset 0 0 0 2px #0F5F63;';
+      return {
+        ticket: r.ticket, status, reason, wait: this.fmtWait(r.mins), open,
+        rowStyle: base + bg,
+        onTap: () => this.setState({ openTicket: open ? null : r.ticket })
+      };
+    });
+    const showEvent = !!s.event && tick < (s.flashUntil || 0);
+    const since = s.since || 0;
+
+    // ---- halo ring + alarm
+    const alarm = mode === 'help';
+    const ringColor = alarm ? (flashOn ? '#FF3B1F' : '#6E1606') : halo;
+    const ringStyle = 'width: 720px; height: 10px; border-radius: 6px; background: ' + ringColor + '; box-shadow: 0 0 ' + (alarm ? '46px 6px ' : '28px ') + ringColor;
+    const alarmStyle = 'border-radius: 16px; padding: 26px 28px; color: #FFFFFF; display: flex; flex-direction: column; gap: 18px; min-height: 340px; box-sizing: border-box; background: ' + (flashOn ? help : '#7A1C05') + '; box-shadow: 0 0 0 ' + (flashOn ? '6px' : '2px') + ' #FF7A55';
+    const bellStyle = 'flex-shrink: 0; width: 140px; height: 140px; border-radius: 70px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; transform: rotate(' + (Math.sin(tick * 1.6) * 16).toFixed(1) + 'deg)';
+    const pillStyle = 'align-self: flex-start; margin-top: 2px; font-size: 14px; font-weight: 700; letter-spacing: 2px; padding: 2px 10px; border-radius: 6px; color: #FFFFFF; background: ' + (flashOn ? '#B83A0E' : '#12232E') + '; border: 2px solid #FF7A55';
+    const helpEl = Math.max(0, (tick - (s.helpTick || 0)) / 10);
+    const etaS = Math.max(0, Math.ceil(90 - helpEl));
+    const helpHeadline = helpEl < 3 ? 'Alerting nurses…' : (etaS > 0 ? 'Help is on the way' : 'A nurse is arriving now');
+    const helpSub = helpEl < 3 ? 'Sending your location to the nurse station.' : 'Stay where you are. If you can, raise your hand so the nurse can find you.';
+    const helpEta = etaS > 0 ? Math.floor(etaS / 60) + ':' + String(etaS % 60).padStart(2, '0') : 'Now';
+
+    // ---- map
+    const D = {
+      here: { label: 'You are here', info: 'ER Waiting Room. Tap a place below to get directions.', walk: '', route: '', end: null },
+      restrooms: { label: 'Restrooms', info: 'Open 24 hr · Accessible stall · Baby changing', walk: '1 min walk', route: 'M130 70 V128 H472 V100', end: [472, 100] },
+      vending: { label: 'Vending', info: 'Open 24 hr · Snacks and water (ask a nurse before eating)', walk: '1 min walk', route: 'M130 70 V128 H555 V100', end: [555, 100] },
+      elevators: { label: 'Elevators', info: 'To upper floors and patient rooms', walk: '2 min walk', route: 'M130 70 V128 H623 V100', end: [623, 100] },
+      pharmacy: { label: 'Pharmacy', info: 'Open until 9 PM · Pick up prescriptions after your visit', walk: '1 min walk', route: 'M130 70 V128 H174 V160', end: [174, 160] },
+      radiology: { label: 'Radiology', info: 'Closed right now · Reopens at 7 AM', walk: 'Closed', route: '', end: null },
+      cafeteria: { label: 'Cafeteria', info: 'Open until 8 PM · Hot food and coffee', walk: '2 min walk', route: 'M130 70 V128 H461 V160', end: [461, 160] },
+      chapel: { label: 'Chapel', info: 'Open 24 hr · A quiet space for patients and family', walk: '2 min walk', route: 'M130 70 V128 H605 V160', end: [605, 160] },
+      exit: { label: 'Exit & Parking', info: 'Main doors · Parking garage across the drive', walk: '1 min walk', route: 'M130 70 V128 H58 V160', end: [58, 160] }
+    };
+    const dest = s.dest || 'restrooms';
+    const ids = ['restrooms', 'vending', 'elevators', 'pharmacy', 'cafeteria', 'chapel', 'exit', 'radiology'];
+    const rf = { here: '#0F5F63' }, rs = {}, rw = {}, rt = {};
+    ids.forEach((id) => {
+      const sel = id === dest;
+      rf[id] = sel ? '#0F5F63' : '#CDE6E4';
+      rt[id] = sel ? '#FFFFFF' : '#12232E';
+      rs[id] = sel ? '#B83A0E' : (id === 'radiology' ? '#6B6B6B' : '#9FB8B6');
+      rw[id] = sel ? 4 : 1.5;
+    });
+    const chipBase = 'height: 40px; padding: 0 14px; border-radius: 20px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; ';
+    const dests = ids.map((id) => ({
+      label: D[id].label,
+      style: chipBase + (id === dest ? 'background: #0F5F63; color: #FFFFFF; border: 2px solid #0F5F63;' : 'background: #FFFFFF; color: #12232E; border: 2px solid #B9CFD0;'),
+      pick: () => this.setState({ dest: id })
+    }));
+    const open = (id) => () => this.setState({ mode: 'map', dest: id, playing: false });
+    const go = {};
+    ['here'].concat(ids).forEach((id) => { go[id] = open(id); });
+    const cur = D[dest];
+    const pp = (tick % 12) / 12;
+
+    return {
+      halo, help, ringStyle, pillStyle, alarmStyle, bellStyle,
+      clock: this.fmtTime(now, true),
+      sinceText: since <= 1 ? 'Updated just now' : 'Updated ' + since + ' sec ago',
+      rows, showEvent, noEvent: !showEvent, event: s.event || '',
+      normalMode: mode === 'normal', helpMode: alarm, notHelp: !alarm, mapMode: mode === 'map',
+      videoThumb: !s.videoOpen, videoOpen: !!s.videoOpen,
+      v: this.video(s.vt || 0, !!s.playing, !!s.ended),
+      playVideo: () => this.setState({ videoOpen: true, playing: true, vt: 0, ended: false }),
+      togglePlay: () => {
+        if (s.ended) this.setState({ vt: 0, playing: true, ended: false });
+        else this.setState({ playing: !s.playing });
+      },
+      closeVideo: () => this.setState({ videoOpen: false, playing: false, vt: 0, ended: false }),
+      pressHelp: () => { this.setState({ mode: 'help', helpTick: tick, muted: false, playing: false, videoOpen: false }); this.beep(4); },
+      cancelHelp: () => this.setState({ mode: 'normal' }),
+      toggleMute: () => this.setState({ muted: !s.muted }),
+      muteLabel: s.muted ? 'Turn alarm sound on' : 'Mute alarm sound',
+      helpHeadline, helpSub, helpEta, helpAt: this.fmtTime(new Date(now.getTime() - helpEl * 1000)),
+      go, closeMap: () => this.setState({ mode: 'normal' }),
+      rf, rs, rw, rt, dests,
+      route: cur.route, dashOff: -(tick * 2) % 36,
+      routeEndX: cur.end ? cur.end[0] : -20, routeEndY: cur.end ? cur.end[1] : -20, routeEndR: cur.end ? 7 : 0,
+      pulseR: 10 + pp * 16, pulseO: (1 - pp).toFixed(2),
+      destName: cur.label, destInfo: cur.info, destWalk: cur.walk
+    };
+  }
+}
+</script>
+
+<script>
+(function () {
+  // ---- tiny template engine for the kiosk's .dc markup: {{holes}}, <sc-for>, <sc-if>, onClick
+  function lookup(path, scopes) {
+    path = path.trim();
+    if (path === 'true') return true; if (path === 'false') return false;
+    if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+    const parts = path.split('.');
+    for (const sc of scopes) {
+      if (sc && Object.prototype.hasOwnProperty.call(sc, parts[0])) {
+        let v = sc[parts[0]];
+        for (let i = 1; i < parts.length; i++) v = v == null ? undefined : v[parts[i]];
+        return v;
+      }
+    }
+    return undefined;
+  }
+  const sub = (str, scopes) => str.replace(/\{\{([^}]+)\}\}/g, (_, p) => { const v = lookup(p, scopes); return v == null ? '' : String(v); });
+  function proc(node, scopes) {
+    if (node.nodeType === 3) { if (node.nodeValue.indexOf('{{') >= 0) node.nodeValue = sub(node.nodeValue, scopes); return; }
+    if (node.nodeType !== 1) return;
+    const tag = node.localName;
+    if (tag === 'sc-for') {
+      const list = lookup(node.getAttribute('list').replace(/[{}]/g, ''), scopes) || [];
+      const as = node.getAttribute('as');
+      const frag = document.createDocumentFragment();
+      list.forEach((item, i) => {
+        const sc = [{ [as]: item, $index: i }].concat(scopes);
+        Array.from(node.childNodes).forEach((c) => { const cl = c.cloneNode(true); frag.appendChild(cl); proc(cl, sc); });
+      });
+      node.replaceWith(frag); return;
+    }
+    if (tag === 'sc-if') {
+      const val = lookup(node.getAttribute('value').replace(/[{}]/g, ''), scopes);
+      if (!val) { node.remove(); return; }
+      Array.from(node.childNodes).forEach((k) => proc(k, scopes));
+      node.replaceWith(...Array.from(node.childNodes)); return;
+    }
+    for (const a of Array.from(node.attributes)) {
+      if (/^on/i.test(a.name)) { node.__h = lookup(a.value.replace(/[{}]/g, ''), scopes); node.removeAttribute(a.name); continue; }
+      if (a.name.indexOf('hint-') === 0) { node.removeAttribute(a.name); continue; }
+      if (a.value.indexOf('{{') >= 0) node.setAttribute(a.name, sub(a.value, scopes));
+    }
+    Array.from(node.childNodes).forEach((c) => proc(c, scopes));
+  }
+  function patch(oldP, newP) {
+    const o = Array.from(oldP.childNodes), n = Array.from(newP.childNodes);
+    for (let i = 0; i < n.length; i++) {
+      const a = o[i], b = n[i];
+      if (!a) { oldP.appendChild(b); continue; }
+      if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) { oldP.replaceChild(b, a); continue; }
+      if (a.nodeType === 3) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; continue; }
+      if (a.nodeType !== 1) continue;
+      for (const at of Array.from(a.attributes)) if (!b.hasAttribute(at.name)) a.removeAttribute(at.name);
+      for (const at of Array.from(b.attributes)) if (a.getAttribute(at.name) !== at.value) a.setAttribute(at.name, at.value);
+      a.__h = b.__h;
+      patch(a, b);
+    }
+    for (let i = o.length - 1; i >= n.length; i--) oldP.removeChild(o[i]);
+  }
+  function mountClicks(host) {
+    host.addEventListener('click', (e) => {
+      let n = e.target;
+      while (n && n !== host) { if (typeof n.__h === 'function') { n.__h(e); return; } n = n.parentNode; }
+    });
+  }
+  function draw(host, tpl, vals) {
+    const frag = tpl.content.cloneNode(true);
+    const box = document.createElement('div');
+    box.appendChild(frag);
+    Array.from(box.childNodes).forEach((c) => proc(c, [vals]));
+    patch(host, box);
+  }
+
+  // ---- component runtime
+  let queued = false;
+  const schedule = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; renderAll(); }); } };
+  class DCLogic { constructor(props) { this.props = props; this.state = {}; } setState(o) { Object.assign(this.state, typeof o === 'function' ? o(this.state) : o); schedule(); } forceUpdate() { schedule(); } }
+
+  const logicEl = document.getElementById('kioskLogic');
+  const defs = JSON.parse(logicEl.getAttribute('data-props') || '{}');
+  const props = {};
+  Object.keys(defs).forEach((k) => { if (k[0] !== '$') props[k] = defs[k].default; });
+  const Kiosk = new Function('DCLogic', logicEl.textContent + '\nreturn Component;')(DCLogic);
+  const kiosk = new Kiosk(props);
+
+  const kHost = document.getElementById('kiosk'), pHost = document.getElementById('phone');
+  const kTpl = document.getElementById('kioskTpl'), pTpl = document.getElementById('phoneTpl');
+  mountClicks(kHost); mountClicks(pHost);
+
+  const phone = { open: 'A118' };
+  const checkin = new Date(Date.now() - 43 * 60000);
+  const ME = 'A118';
+
+  function phoneVals(kv) {
+    const s = kiosk.state;
+    const base = 'border: 0; font-family: inherit; color: #12232E; cursor: pointer; width: 100%; box-sizing: border-box; padding: 12px 16px; border-radius: 12px; display: flex; flex-direction: column; text-align: left; ';
+    const rows = kv.rows.map((r, i) => {
+      const open = r.ticket === phone.open;
+      let bg = i === 0 ? 'background: #FFF1E8;' : 'background: #FFFFFF;';
+      if (open) bg = 'background: #DCEFED; box-shadow: inset 0 0 0 2px #0F5F63;';
+      return { ticket: r.ticket, status: r.status, reason: r.reason, wait: r.wait, open, you: r.ticket === ME, rowStyle: base + bg,
+        onTap: () => { phone.open = open ? null : r.ticket; schedule(); } };
+    });
+    const q = s.queue || [];
+    const idx = q.findIndex((r) => r.ticket === ME);
+    const waited = Math.floor((Date.now() - checkin.getTime()) / 60000);
+    const me = {
+      wait: idx < 0 ? 'Called' : kiosk.fmtWait(q[idx].mins),
+      ahead: idx < 0 ? 0 : idx,
+      waited: waited + ' min',
+      checkin: 'Checked in ' + kiosk.fmtTime(checkin)
+    };
+    const alarm = s.mode === 'help';
+    const tick = s.tick || 0;
+    const flashOn = Math.floor(tick / 5) % 2 === 0;
+    const helpEl = Math.max(0, (tick - (s.helpTick || 0)) / 10);
+    const etaS = Math.max(0, Math.ceil(90 - helpEl));
+    return {
+      halo: kv.halo, help: kv.help, rows, me, sinceText: kv.sinceText,
+      phoneHelpBg: alarm ? (flashOn ? kv.help : '#7A1C05') : kv.help,
+      phoneHelpTitle: alarm ? 'Help is on the way' : 'Call for help',
+      phoneHelpSub: alarm ? (etaS > 0 ? 'Nurse arriving in ' + Math.floor(etaS / 60) + ':' + String(etaS % 60).padStart(2, '0') + '. You keep your place.' : 'A nurse is arriving now.') : 'Feeling worse? A nurse will come to you. You keep your place.',
+      pressHelp: () => { if (!alarm) kv.pressHelp(); }
+    };
+  }
+
+  function renderAll() {
+    const kv = kiosk.renderVals();
+    draw(kHost, kTpl, kv);
+    draw(pHost, pTpl, phoneVals(kv));
+  }
+
+  // ---- fit the 920px kiosk and 414px phone to their columns
+  const kScaler = document.getElementById('kioskScaler');
+  const pHolder = document.getElementById('phoneHolder'), pFrame = document.getElementById('phoneFrame');
+  function fit() {
+    const k = Math.min(1, kScaler.clientWidth / 920);
+    kHost.style.transform = 'scale(' + k + ')';
+    kScaler.style.height = Math.ceil(1970 * k) + 'px';
+    const pw = pHolder.parentNode.clientWidth;
+    const p = Math.min(1, pw / 414);
+    pFrame.style.transform = p < 1 ? 'scale(' + p + ')' : '';
+    pHolder.style.height = p < 1 ? Math.ceil(pFrame.offsetHeight * p) + 'px' : '';
+  }
+  try { new ResizeObserver(fit).observe(document.querySelector('.stage')); } catch (e) { window.addEventListener('resize', fit); }
+
+  renderAll();
+  if (kiosk.componentDidMount) kiosk.componentDidMount();
+  fit();
+})();
+</script>
+</body>
+</html>
