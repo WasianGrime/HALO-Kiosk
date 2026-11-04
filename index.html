@@ -34,7 +34,7 @@ h1 { font-family: var(--display); font-size: clamp(48px, 7vw, 84px); line-height
 .stage { display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; justify-content: center; }
 .col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .col-kiosk { flex: 1 1 560px; max-width: 920px; }
-.col-phone { flex: 0 1 414px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+.col-phone { flex: 0 1 414px; display: flex; flex-direction: column; gap: 24px; }
 .label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .label b { font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; }
 .label span { font-size: 14px; color: var(--muted); }
@@ -47,6 +47,16 @@ h1 { font-family: var(--display); font-size: clamp(48px, 7vw, 84px); line-height
 button:focus-visible { outline: 3px solid #3FC1C0; outline-offset: 2px; }
 footer a { color: var(--teal); }
 footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; border-top: 1px solid var(--wall-deep); padding-top: 16px; }
+.desk { display: flex; flex-direction: column; gap: 12px; }
+.desk-card { background: var(--card); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.desk-card p { margin: 0; font-size: 15px; color: #2E3E47; }
+.levels { display: flex; flex-direction: column; gap: 8px; }
+.lvl { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; color: var(--ink); background: #FFFFFF; border: 1px solid var(--wall-deep); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+.lvl:hover { border-color: var(--teal); }
+.lvl .num { width: 36px; height: 36px; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; }
+.lvl b { display: block; font-size: 16px; }
+.lvl small { display: block; font-size: 13px; color: var(--muted); }
+.desk-out { font-weight: 700; color: var(--teal) !important; }
 @media (max-width: 860px) {
   .intro { grid-template-columns: minmax(0, 1fr); }
   .col-phone { position: static; }
@@ -68,8 +78,9 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
         <li>Press <b>Call for help</b> on either screen. The kiosk sounds an alarm.</li>
         <li>Tap a place on the kiosk <b>map</b> for directions.</li>
         <li>Play the <b>video</b> on the kiosk.</li>
-        <li>Tap a <b>ticket</b> to see why its wait changed.</li>
-        <li>Wait a few seconds: the list <b>updates on its own</b>.</li>
+        <li>Tap the glowing <b>phone pad</b> on the kiosk. The page is sent to the phone.</li>
+        <li>Check in a patient at the <b>front desk</b> and watch where their triage level puts them.</li>
+        <li>Tap a <b>ticket</b> to see why its wait changed. The list also updates on its own.</li>
       </ul>
       <p class="note">Sound plays only after you tap. All tickets, times and places are examples.</p>
     </div>
@@ -78,20 +89,34 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
   <section class="stage">
     <div class="col col-kiosk">
       <div class="label"><b>Kiosk tower</b><span>One of four identical screens</span></div>
-      <div class="scaler" id="kioskScaler"><div class="dc" id="kiosk" style="width:920px;height:1970px"></div></div>
+      <div class="scaler" id="kioskScaler"><div class="dc" id="kiosk" style="width:920px;height:2110px"></div></div>
     </div>
     <div class="col col-phone">
       <div class="label"><b>Phone page</b><span>Ticket A118 · scroll inside</span></div>
       <div class="phone-holder" id="phoneHolder">
         <div class="phone-frame" id="phoneFrame"><div class="phone-screen"><div id="phone"></div></div></div>
       </div>
+      <section class="desk" aria-labelledby="deskTitle">
+        <div class="label"><b id="deskTitle">Front desk check-in</b><span>Staff view, not on the kiosk</span></div>
+        <div class="desk-card">
+          <p>After the triage nurse assigns a level, one tap prints the ticket, texts the patient their link and puts them in the right place in line. The public screens show only the ticket number and level.</p>
+          <div class="levels">
+            <button type="button" class="lvl" data-level="1"><span class="num" style="background:#F4B8B0;color:#6E1606">1</span><span><b>Immediate</b><small>Taken straight back. Not shown on screens.</small></span></button>
+            <button type="button" class="lvl" data-level="2"><span class="num" style="background:#F9D3C2;color:#7A2A0C">2</span><span><b>Emergent</b><small>Seen next, ahead of levels 3 to 5.</small></span></button>
+            <button type="button" class="lvl" data-level="3"><span class="num" style="background:#F7E3A1;color:#5C4600">3</span><span><b>Urgent</b><small>Joins after other level 3 patients.</small></span></button>
+            <button type="button" class="lvl" data-level="4"><span class="num" style="background:#D3EBD5;color:#1F5A2A">4</span><span><b>Less urgent</b><small>Joins after other level 4 patients.</small></span></button>
+            <button type="button" class="lvl" data-level="5"><span class="num" style="background:#D6E4F5;color:#1E4677">5</span><span><b>Non-urgent</b><small>Joins at the end of the line.</small></span></button>
+          </div>
+          <p class="desk-out" id="deskOut" aria-live="polite">No patients checked in yet from this desk.</p>
+        </div>
+      </section>
     </div>
   </section>
 
   <footer><span>[TEAM NAMES] · ER Wait-Time Concept</span><span>Concept write-up: <a href="docs/HALO-concept-system-2-pages.pdf">2-page PDF</a> · <a href="docs/HALO-concept-system-4-pages.pdf">4-page PDF</a></span><span>Prototype only. Not connected to a real hospital system.</span></footer>
 </div>
 
-<template id="kioskTpl"><div style="width: 920px; height: 1970px; box-sizing: border-box; background: #D9DEDB; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #12232E; display: flex; flex-direction: column; align-items: center; padding-top: 48px">
+<template id="kioskTpl"><div style="width: 920px; height: 2110px; box-sizing: border-box; background: #D9DEDB; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #12232E; display: flex; flex-direction: column; align-items: center; padding-top: 48px">
 
   <!-- Tower cap with halo light ring -->
   <div style="width: 840px; height: 64px; background: #1C2A31; border-radius: 28px 28px 0 0; display: flex; align-items: center; justify-content: center">
@@ -100,7 +125,7 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
 
   <!-- Tower body + screen -->
   <div style="width: 840px; box-sizing: border-box; background: #1C2A31; padding: 24px 40px 40px 40px">
-    <div style="width: 760px; height: 1440px; box-sizing: border-box; background: #F4F6F5; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column">
+    <div style="width: 760px; height: 1580px; box-sizing: border-box; background: #F4F6F5; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column">
 
       <!-- Header -->
       <header style="height: 96px; box-sizing: border-box; padding: 0 32px; background: #12232E; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between">
@@ -133,14 +158,23 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
             <div style="font-size: 17px; color: #46565F">Tap a number to see why</div>
           </sc-if>
         </div>
-        <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr) 170px; padding: 0 20px; font-size: 15px; font-weight: 700; color: #46565F; letter-spacing: 1px">
-          <div>TICKET</div><div>STATUS</div><div style="text-align: right">EST. WAIT</div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; color: #2E3E47; background: #FFFFFF; border-radius: 10px; padding: 10px 14px">
+          <span style="font-weight: 700; letter-spacing: 1px">TRIAGE LEVEL</span>
+          <span style="font-weight: 700; padding: 2px 8px; border-radius: 5px; background: #F9D3C2; color: #7A2A0C">2 Emergent</span>
+          <span style="font-weight: 700; padding: 2px 8px; border-radius: 5px; background: #F7E3A1; color: #5C4600">3 Urgent</span>
+          <span style="font-weight: 700; padding: 2px 8px; border-radius: 5px; background: #D3EBD5; color: #1F5A2A">4 Less urgent</span>
+          <span style="font-weight: 700; padding: 2px 8px; border-radius: 5px; background: #D6E4F5; color: #1E4677">5 Non-urgent</span>
+          <span style="color: #46565F">Lower number is seen first. Shows how urgent, never why.</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 120px 130px minmax(0, 1fr) 150px; padding: 0 20px; font-size: 15px; font-weight: 700; color: #46565F; letter-spacing: 1px">
+          <div>TICKET</div><div>LEVEL</div><div>STATUS</div><div style="text-align: right">EST. WAIT</div>
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px">
           <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
             <button onClick="{{r.onTap}}" style="{{r.rowStyle}}">
-              <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr) 170px; align-items: center; width: 100%">
+              <div style="display: grid; grid-template-columns: 120px 130px minmax(0, 1fr) 150px; align-items: center; width: 100%">
                 <div style="font-size: 28px; font-weight: 700">{{r.ticket}}</div>
+                <div><span style="{{r.lvlStyle}}">{{r.lvlText}}</span></div>
                 <div style="font-size: 19px; color: #2E3E47">{{r.status}}</div>
                 <div style="font-size: 26px; font-weight: 700; text-align: right; white-space: nowrap">{{r.wait}}</div>
               </div>
@@ -150,6 +184,9 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
             </button>
           </sc-for>
         </div>
+        <sc-if value="{{hasMore}}" hint-placeholder-val="{{false}}">
+          <div style="font-size: 16px; color: #46565F; padding: 0 20px">{{moreText}}</div>
+        </sc-if>
       </section>
 
       <!-- ============ NORMAL MODE ============ -->
@@ -160,7 +197,7 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
               <h2 style="margin: 0; font-size: 24px; white-space: nowrap">Hospital map · Floor 1</h2>
               <div style="font-size: 14px; color: #46565F; text-align: right">Tap for directions</div>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: 78px 78px 78px; gap: 8px; font-size: 15px; font-weight: 700">
+            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: 70px 70px 70px; gap: 8px; font-size: 15px; font-weight: 700">
               <button onClick="{{go.here}}" style="grid-column: span 2; grid-row: span 2; border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #0F5F63; color: #FFFFFF; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between">
                 <span>ER Waiting Room</span>
                 <span style="display: flex; align-items: center; gap: 6px; font-size: 14px"><span style="width: 12px; height: 12px; border-radius: 6px; background: #FFFFFF"></span>You are here</span>
@@ -172,6 +209,13 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
               <button onClick="{{go.cafeteria}}" style="grid-column: span 2; border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #CDE6E4; color: #12232E; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start">Cafeteria<span style="font-weight: 400; font-size: 13px">Open until 8 PM</span></button>
               <button onClick="{{go.chapel}}" style="border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #CDE6E4; color: #12232E; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start">Chapel<span style="font-weight: 400; font-size: 13px">Open 24 hr</span></button>
               <button onClick="{{go.exit}}" style="border: 0; font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; background: #CDE6E4; color: #12232E; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start">Exit &amp; Parking</button>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: 13px; color: #2E3E47; border-top: 1px solid #DDE5E3; padding-top: 8px">
+              <span style="font-weight: 700; letter-spacing: 1px">KEY</span>
+              <span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 16px; border-radius: 4px; background: #0F5F63; display: flex; align-items: center; justify-content: center"><span style="width: 6px; height: 6px; border-radius: 3px; background: #FFFFFF"></span></span>You are here</span>
+              <span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 16px; border-radius: 4px; background: #CDE6E4; border: 1px solid #9FB8B6"></span>Open</span>
+              <span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 16px; border-radius: 4px; background: repeating-linear-gradient(45deg, #E3E3E3 0 3px, #B5B5B5 3px 5px); border: 1px dashed #6B6B6B"></span>Closed</span>
+              <span style="display: flex; align-items: center; gap: 6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F5F63" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v10l-3-3M9 14l3-3"></path><path d="M13 9h6v11h-9"></path></svg>Tap a place for a route</span>
             </div>
           </div>
           <div style="display: flex; flex-direction: column; gap: 12px">
@@ -450,6 +494,16 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
               <circle cx="130" cy="70" r="9" fill="#FFFFFF" stroke="#12232E" stroke-width="3"></circle>
               <text x="146" y="75" font-size="13" font-weight="700" fill="#FFFFFF">You are here</text>
             </svg>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: 13px; color: #2E3E47; border-top: 1px solid #DDE5E3; padding-top: 8px">
+              <span style="font-weight: 700; letter-spacing: 1px">KEY</span>
+              <span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 16px; border-radius: 8px; background: #FFFFFF; border: 3px solid #12232E; box-sizing: border-box"></span>You are here</span>
+              <span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 16px; border-radius: 4px; background: #CDE6E4; border: 1px solid #9FB8B6"></span>Open</span>
+              <span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 16px; border-radius: 4px; background: #0F5F63; border: 3px solid #B83A0E; box-sizing: border-box"></span>Where you're going</span>
+              <span style="display: flex; align-items: center; gap: 6px"><span style="width: 22px; border-top: 4px dashed #B83A0E"></span>Walking route</span>
+              <span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 16px; border-radius: 4px; background: #DDE5E3; border: 1px solid #9FB8B6"></span>Staff only</span>
+              <span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 16px; border-radius: 4px; background: repeating-linear-gradient(45deg, #E3E3E3 0 3px, #B5B5B5 3px 5px); border: 1px dashed #6B6B6B"></span>Closed</span>
+              <span style="display: flex; align-items: center; gap: 6px"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8M8 4v8" stroke="#B83A0E" stroke-width="3"></path></svg>Nurse station</span>
+            </div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px">
               <sc-for list="{{dests}}" as="d" hint-placeholder-count="8">
                 <button onClick="{{d.pick}}" style="{{d.style}}">{{d.label}}</button>
@@ -470,25 +524,34 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
         </section>
       </sc-if>
 
-      <!-- Footer: cycle + scan to phone -->
-      <footer style="margin-top: auto; padding: 18px 32px; background: #E6ECEA; display: flex; align-items: center; justify-content: space-between">
-        <div style="display: flex; align-items: center; gap: 14px">
-          <div style="width: 88px; height: 88px; background: #FFFFFF; border: 2px dashed #46565F; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #46565F">[QR]</div>
-          <div style="display: flex; flex-direction: column; gap: 4px">
-            <div style="font-size: 20px; font-weight: 700">Take this screen with you</div>
-            <div style="font-size: 16px; color: #46565F">Scan to see the same info on your phone</div>
-          </div>
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px">
-          <div style="display: flex; gap: 6px">
-            <span style="width: 28px; height: 8px; border-radius: 4px; background: #0F5F63"></span>
-            <span style="width: 8px; height: 8px; border-radius: 4px; background: #9AAAB0"></span>
-            <span style="width: 8px; height: 8px; border-radius: 4px; background: #9AAAB0"></span>
-            <span style="width: 8px; height: 8px; border-radius: 4px; background: #9AAAB0"></span>
-          </div>
+      <!-- Footer: take it with you (scan or tap) -->
+      <sc-if value="{{notMap}}" hint-placeholder-val="{{true}}">
+      <footer style="margin-top: auto; padding: 14px 32px 18px; background: #E6ECEA; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <div style="font-size: 20px; font-weight: 700">Take this screen with you</div>
           <div style="font-size: 14px; color: #46565F">Español · 中文 · Tiếng Việt</div>
         </div>
+        <div style="display: flex; align-items: center; gap: 16px">
+          <div style="display: flex; align-items: center; gap: 12px; flex: 1">
+            <div style="width: 88px; height: 88px; flex-shrink: 0; background: #FFFFFF; border: 2px dashed #46565F; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #46565F">[QR]</div>
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <div style="font-size: 17px; font-weight: 700">Scan the code</div>
+              <div style="font-size: 15px; color: #46565F">with your phone camera</div>
+            </div>
+          </div>
+          <div style="font-size: 15px; font-weight: 700; color: #46565F">or</div>
+          <div style="display: flex; align-items: center; gap: 12px; flex: 1.25">
+            <button onClick="{{tapNfc}}" aria-label="Phone tap pad. Hold your phone here to get this page" style="{{nfcStyle}}">
+              <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#3FC1C0" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="#3FC1C0" stroke="none"></circle><path d="M8.5 8.5a5 5 0 0 1 0 7"></path><path d="M12 6a8.5 8.5 0 0 1 0 12"></path><path d="M15.5 3.5a12 12 0 0 1 0 17"></path></svg>
+            </button>
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <div style="font-size: 17px; font-weight: 700">{{nfcTitle}}</div>
+              <div style="font-size: 15px; color: #46565F">{{nfcSub}}</div>
+            </div>
+          </div>
+        </div>
       </footer>
+      </sc-if>
     </div>
   </div>
 
@@ -499,6 +562,12 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
 </div></template>
 <template id="phoneTpl"><div style="width: 390px; min-height: 1500px; box-sizing: border-box; background: #F4F6F5; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #12232E; display: flex; flex-direction: column">
 
+  <sc-if value="{{nfcBanner}}" hint-placeholder-val="{{false}}">
+    <div role="status" style="position: sticky; top: 8px; z-index: 5; margin: 8px 10px -84px; height: 76px; box-sizing: border-box; padding: 12px 14px; border-radius: 18px; background: rgba(244,246,245,0.97); box-shadow: 0 6px 24px rgba(18,35,46,0.28); display: flex; align-items: center; gap: 12px">
+      <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #12232E; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="16" fill="none" stroke="#3FC1C0" stroke-width="4"></circle><path d="M22 14v16M14 22h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path></svg></div>
+      <div style="display: flex; flex-direction: column"><div style="font-size: 14px; font-weight: 700">H.A.L.O. · now</div><div style="font-size: 14px; color: #2E3E47">Your wait page is ready. Tap to open.</div></div>
+    </div>
+  </sc-if>
   <!-- Header -->
   <header style="padding: 20px 20px 18px 20px; background: #12232E; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between">
     <div style="display: flex; align-items: center; gap: 12px">
@@ -519,7 +588,7 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
         <div style="font-size: 14px; color: #46565F">{{me.checkin}}</div>
       </div>
       <div style="display: flex; align-items: flex-end; justify-content: space-between">
-        <div style="font-size: 44px; font-weight: 700; line-height: 1">A118</div>
+        <div style="display: flex; flex-direction: column; gap: 8px"><div style="font-size: 44px; font-weight: 700; line-height: 1">A118</div><span style="{{me.lvlStyle}}">{{me.lvlText}}</span></div>
         <div style="display: flex; flex-direction: column; align-items: flex-end">
           <div style="font-size: 14px; color: #46565F">Estimated wait</div>
           <div style="font-size: 40px; font-weight: 700; line-height: 1; color: #0F5F63; white-space: nowrap">{{me.wait}}</div>
@@ -554,7 +623,7 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%">
           <div style="display: flex; flex-direction: column; gap: 2px">
             <div style="font-size: 20px; font-weight: 700">{{r.ticket}}<sc-if value="{{r.you}}" hint-placeholder-val="{{false}}"><span style="margin-left: 8px; font-size: 12px; font-weight: 700; color: #FFFFFF; background: #0F5F63; border-radius: 4px; padding: 2px 6px; vertical-align: middle">YOU</span></sc-if></div>
-            <div style="font-size: 14px; color: #2E3E47">{{r.status}}</div>
+            <div style="font-size: 14px; color: #2E3E47; display: flex; align-items: center; gap: 8px; flex-wrap: wrap"><span style="{{r.lvlStylePh}}">{{r.lvlText}}</span>{{r.status}}</div>
           </div>
           <div style="font-size: 20px; font-weight: 700">{{r.wait}}</div>
         </div>
@@ -610,16 +679,28 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
     <a href="#">Español</a>
   </footer>
 </div></template>
-<script type="text/x-dc" id="kioskLogic" data-props='{"halo":{"editor":"color","default":"#3FC1C0","options":["#3FC1C0","#7BA7E0","#F2B544"]},"help":{"editor":"color","default":"#B83A0E","options":["#B83A0E","#9A3412","#1D4ED8"]},"sound":{"editor":"boolean","default":true},"$preview":{"width":920,"height":1970}}'>
+<script type="text/x-dc" id="kioskLogic" data-props='{"halo":{"editor":"color","default":"#3FC1C0","options":["#3FC1C0","#7BA7E0","#F2B544"]},"help":{"editor":"color","default":"#B83A0E","options":["#B83A0E","#9A3412","#1D4ED8"]},"sound":{"editor":"boolean","default":true},"$preview":{"width":920,"height":2110}}'>
 class Component extends DCLogic {
+  levels() {
+    return {
+      1: { name: 'Immediate', bg: '#F4B8B0', fg: '#6E1606' },
+      2: { name: 'Emergent', bg: '#F9D3C2', fg: '#7A2A0C' },
+      3: { name: 'Urgent', bg: '#F7E3A1', fg: '#5C4600' },
+      4: { name: 'Less urgent', bg: '#D3EBD5', fg: '#1F5A2A' },
+      5: { name: 'Non-urgent', bg: '#D6E4F5', fg: '#1E4677' }
+    };
+  }
+
   initQueue() {
+    const ago = this.fmtTime(new Date(Date.now() - 15 * 60000));
+    const why = 'Patients are seen by triage level first, then by arrival time.';
     return [
-      { ticket: 'A112', mins: 0, kind: 'Waiting', reason: '' },
-      { ticket: 'A114', mins: 5, kind: 'Waiting', reason: '' },
-      { ticket: 'A115', mins: 20, kind: 'Waiting', reason: 'Two patients with more urgent needs arrived by ambulance at ' + this.fmtTime(new Date(Date.now() - 15 * 60000)) + '. Your wait went up by 10 min.' },
-      { ticket: 'A117', mins: 35, kind: 'Waiting for test results', reason: 'Your lab results are being processed. A nurse will call you back.' },
-      { ticket: 'A118', mins: 45, kind: 'Waiting', reason: 'Patients are seen by how urgent their needs are, not only by arrival time.' },
-      { ticket: 'A120', mins: 70, kind: 'Waiting', reason: 'Patients are seen by how urgent their needs are, not only by arrival time.' }
+      { ticket: 'A112', level: 3, seq: 112, mins: 0, kind: 'Waiting', reason: '' },
+      { ticket: 'A114', level: 3, seq: 114, mins: 5, kind: 'Waiting', reason: '' },
+      { ticket: 'A115', level: 3, seq: 115, mins: 20, kind: 'Waiting', reason: 'A level 2 patient arrived by ambulance at ' + ago + ' and is being seen first. Your wait went up 10 min.' },
+      { ticket: 'A117', level: 4, seq: 117, mins: 35, kind: 'Waiting for results', reason: 'Your lab results are being processed. A nurse will call you back.' },
+      { ticket: 'A118', level: 4, seq: 118, mins: 45, kind: 'Waiting', reason: why },
+      { ticket: 'A120', level: 5, seq: 120, mins: 70, kind: 'Waiting', reason: why }
     ];
   }
 
@@ -666,37 +747,110 @@ class Component extends DCLogic {
     this.setState(upd);
   }
 
+  newPatient(level, t, next) {
+    return { ticket: 'A' + next, level, seq: next, mins: 0, kind: 'Just checked in', reason: 'Checked in at ' + t + ' as triage level ' + level + '. Patients are seen by level first, then by arrival time.' };
+  }
+
+  place(q, p, t, how) {
+    let i = 1;
+    while (i < q.length && q[i].level <= p.level) i++;
+    p.mins = i === 1 ? 5 : q[i - 1].mins + 5 + Math.floor(Math.random() * 6);
+    q.splice(i, 0, p);
+    for (let j = i + 1; j < q.length; j++) {
+      q[j].mins += 10;
+      q[j].reason = 'A level ' + p.level + ' patient ' + how + ' at ' + t + ' and will be seen first. Your wait went up 10 min.';
+    }
+  }
+
+  tidy(q) {
+    const head = q[0];
+    const rest = q.slice(1).sort((a, b) => (a.level - b.level) || (a.seq - b.seq));
+    if (rest.length) rest[0].mins = Math.max(5, rest[0].mins);
+    for (let i = 1; i < rest.length; i++) if (rest[i].mins < rest[i - 1].mins + 5) rest[i].mins = rest[i - 1].mins + 5;
+    return [head, ...rest];
+  }
+
   mutate(now, tick) {
-    const q = (this.state.queue || this.initQueue()).map((r) => ({ ...r }));
+    let q = (this.state.queue || this.initQueue()).map((r) => ({ ...r }));
     let next = this.state.nextNum || 121;
     const t = this.fmtTime(now);
     const roll = Math.random();
     let msg, flash = null;
-    if (roll < 0.55) {
+    if (roll < 0.5 || q.length > 8) {
       const called = q.shift();
       q.forEach((r) => { r.mins = Math.max(5, r.mins - (5 + Math.floor(Math.random() * 4))); if (r.kind === 'Just checked in') r.kind = 'Waiting'; });
       q[0].mins = 0;
-      const last = q[q.length - 1].mins;
-      const tk = 'A' + next;
-      q.push({ ticket: tk, mins: last + 10 + Math.floor(Math.random() * 10), kind: 'Just checked in', reason: 'You just checked in at ' + t + '. Your wait will update once triage is done.' });
-      next += 1 + Math.floor(Math.random() * 2);
       msg = called.ticket + ' was called back. Everyone moved up.';
-      flash = tk;
-    } else if (roll < 0.8) {
-      q.forEach((r, i) => { if (i >= 2) { r.mins += 10; r.reason = 'Two patients with more urgent needs arrived by ambulance at ' + t + '. Your wait went up 10 min.'; } });
-      msg = 'Ambulance arrival at ' + t + '. Some waits went up.';
+      if (q.length < 6) {
+        const p = this.newPatient(3 + Math.floor(Math.random() * 3), t, next);
+        next += 1 + Math.floor(Math.random() * 2);
+        this.place(q, p, t, 'checked in');
+        flash = p.ticket;
+      }
+    } else if (roll < 0.7) {
+      const p = this.newPatient(3 + Math.floor(Math.random() * 3), t, next);
+      next += 1 + Math.floor(Math.random() * 2);
+      this.place(q, p, t, 'checked in');
+      msg = p.ticket + ' checked in at triage level ' + p.level + '.';
+      flash = p.ticket;
+    } else if (roll < 0.85) {
+      const p = this.newPatient(2, t, next);
+      p.kind = 'Waiting';
+      p.reason = 'Arrived at ' + t + '. Level 2 patients are seen right after anyone already being called.';
+      next += 1;
+      this.place(q, p, t, 'arrived by ambulance');
+      msg = 'Level 2 ambulance arrival at ' + t + '. Some waits went up.';
+      flash = p.ticket;
     } else {
       const i = 2 + Math.floor(Math.random() * (q.length - 2));
       q[i].mins = Math.max(q[1].mins + 5, q[i].mins - 10);
       q[i].reason = 'A room opened up at ' + t + '. Your wait went down.';
-      if (q[i].kind === 'Waiting for test results') { q[i].kind = 'Waiting'; q[i].reason = 'Your test results came back at ' + t + '. You are back in line.'; }
+      if (q[i].kind === 'Waiting for results') { q[i].kind = 'Waiting'; q[i].reason = 'Your test results came back at ' + t + '. You are back in line.'; }
       msg = q[i].ticket + ': a room opened up. Wait went down.';
       flash = q[i].ticket;
     }
-    const head = q[0];
-    const rest = q.slice(1).sort((a, b) => a.mins - b.mins);
-    for (let i = 1; i < rest.length; i++) if (rest[i].mins < rest[i - 1].mins + 5) rest[i].mins = rest[i - 1].mins + 5;
-    return { queue: [head, ...rest], nextNum: next, since: 0, nextUpd: 10 + Math.floor(Math.random() * 9), event: msg, flashTicket: flash, flashUntil: tick + 50 };
+    q = this.tidy(q);
+    return { queue: q, nextNum: next, since: 0, nextUpd: 10 + Math.floor(Math.random() * 9), event: msg, flashTicket: flash, flashUntil: tick + 50 };
+  }
+
+  checkIn(level) {
+    const s = this.state;
+    let q = (s.queue || this.initQueue()).map((r) => ({ ...r }));
+    const next = s.nextNum || 121;
+    const t = this.fmtTime(new Date());
+    const tick = s.tick || 0;
+    const tk = 'A' + next;
+    if (level === 1) {
+      q.forEach((r, i) => { if (i >= 1) { r.mins += 5; r.reason = 'A level 1 patient was taken straight back at ' + t + '. Your wait went up 5 min.'; } });
+      this.setState({ queue: q, nextNum: next + 1, since: 0, event: 'Level 1 patient taken straight back. Waits went up 5 min.', flashTicket: null, flashUntil: tick + 50 });
+      return tk;
+    }
+    const p = this.newPatient(level, t, next);
+    this.place(q, p, t, 'checked in');
+    q = this.tidy(q);
+    this.setState({ queue: q, nextNum: next + 1, since: 0, event: tk + ' checked in at triage level ' + level + '.', flashTicket: tk, flashUntil: tick + 50 });
+    return tk;
+  }
+
+  chirp() {
+    if (this.props.sound === false) return;
+    try {
+      const C = window.AudioContext || window.webkitAudioContext;
+      if (!C) return;
+      this.ac = this.ac || new C();
+      const ac = this.ac;
+      if (ac.state === 'suspended') ac.resume();
+      [1046, 1568].forEach((f, k) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        o.connect(g); g.connect(ac.destination);
+        const t0 = ac.currentTime + k * 0.12;
+        g.gain.setValueAtTime(0.0001, ac.currentTime);
+        g.gain.setValueAtTime(0.08, t0);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.15);
+        o.start(t0); o.stop(t0 + 0.16);
+      });
+    } catch (e) {}
   }
 
   beep(n) {
@@ -839,7 +993,8 @@ class Component extends DCLogic {
     // ---- wait list
     const q = s.queue || this.initQueue();
     const base = 'border: 0; font-family: inherit; color: #12232E; cursor: pointer; width: 100%; box-sizing: border-box; padding: 14px 20px; border-radius: 12px; display: flex; flex-direction: column; text-align: left; ';
-    const rows = q.map((r, i) => {
+    const L = this.levels();
+    const allRows = q.map((r, i) => {
       const open = r.ticket === s.openTicket;
       const flashing = r.ticket === s.flashTicket && tick < (s.flashUntil || 0);
       const status = i === 0 ? 'Being called now' : (i === 1 ? 'Next up' : r.kind);
@@ -849,6 +1004,8 @@ class Component extends DCLogic {
       if (open) bg = 'background: #DCEFED; box-shadow: inset 0 0 0 2px #0F5F63;';
       return {
         ticket: r.ticket, status, reason, wait: this.fmtWait(r.mins), open,
+        lvlText: 'Level ' + (r.level || 4), lvlName: L[r.level || 4].name,
+        lvlStyle: 'display: inline-block; white-space: nowrap; font-size: 15px; font-weight: 700; padding: 4px 10px; border-radius: 6px; background: ' + L[r.level || 4].bg + '; color: ' + L[r.level || 4].fg,
         rowStyle: base + bg,
         onTap: () => this.setState({ openTicket: open ? null : r.ticket })
       };
@@ -907,8 +1064,13 @@ class Component extends DCLogic {
       halo, help, ringStyle, pillStyle, alarmStyle, bellStyle,
       clock: this.fmtTime(now, true),
       sinceText: since <= 1 ? 'Updated just now' : 'Updated ' + since + ' sec ago',
-      rows, showEvent, noEvent: !showEvent, event: s.event || '',
-      normalMode: mode === 'normal', helpMode: alarm, notHelp: !alarm, mapMode: mode === 'map',
+      rows: allRows.slice(0, 5), allRows, showEvent, noEvent: !showEvent, event: s.event || '',
+      hasMore: q.length > 5, moreText: '+ ' + (q.length - 5) + ' more waiting. Scan or tap below to see the full list on your phone.',
+      nfcTitle: tick < (s.nfcUntil || 0) ? 'Sent! Check your phone' : 'Hold your phone here',
+      nfcSub: tick < (s.nfcUntil || 0) ? 'Your H.A.L.O. page is opening.' : 'Works like tap to pay. No app needed.',
+      nfcStyle: 'width: 108px; height: 88px; flex-shrink: 0; padding: 0; border-radius: 14px; border: 3px solid #3FC1C0; background: #12232E; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 ' + (tick < (s.nfcUntil || 0) ? (flashOn ? 12 : 5) : 4) + 'px rgba(63,193,192,' + (tick < (s.nfcUntil || 0) ? 0.45 : 0.22) + ')',
+      tapNfc: () => { this.setState({ nfcUntil: tick + 45 }); this.chirp(); },
+      normalMode: mode === 'normal', helpMode: alarm, notHelp: !alarm, mapMode: mode === 'map', notMap: mode !== 'map',
       videoThumb: !s.videoOpen, videoOpen: !!s.videoOpen,
       v: this.video(s.vt || 0, !!s.playing, !!s.ended),
       playVideo: () => this.setState({ videoOpen: true, playing: true, vt: 0, ended: false }),
@@ -1030,11 +1192,13 @@ class Component extends DCLogic {
   function phoneVals(kv) {
     const s = kiosk.state;
     const base = 'border: 0; font-family: inherit; color: #12232E; cursor: pointer; width: 100%; box-sizing: border-box; padding: 12px 16px; border-radius: 12px; display: flex; flex-direction: column; text-align: left; ';
-    const rows = kv.rows.map((r, i) => {
+    const L = kiosk.levels();
+    const rows = kv.allRows.map((r, i) => {
       const open = r.ticket === phone.open;
       let bg = i === 0 ? 'background: #FFF1E8;' : 'background: #FFFFFF;';
       if (open) bg = 'background: #DCEFED; box-shadow: inset 0 0 0 2px #0F5F63;';
       return { ticket: r.ticket, status: r.status, reason: r.reason, wait: r.wait, open, you: r.ticket === ME, rowStyle: base + bg,
+        lvlText: r.lvlText, lvlStylePh: r.lvlStyle.replace('font-size: 15px', 'font-size: 12px').replace('padding: 4px 10px', 'padding: 2px 7px'),
         onTap: () => { phone.open = open ? null : r.ticket; schedule(); } };
     });
     const q = s.queue || [];
@@ -1044,7 +1208,9 @@ class Component extends DCLogic {
       wait: idx < 0 ? 'Called' : kiosk.fmtWait(q[idx].mins),
       ahead: idx < 0 ? 0 : idx,
       waited: waited + ' min',
-      checkin: 'Checked in ' + kiosk.fmtTime(checkin)
+      checkin: 'Checked in ' + kiosk.fmtTime(checkin),
+      lvlText: 'Level 4 · ' + L[4].name,
+      lvlStyle: 'align-self: flex-start; font-size: 13px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: ' + L[4].bg + '; color: ' + L[4].fg
     };
     const alarm = s.mode === 'help';
     const tick = s.tick || 0;
@@ -1053,6 +1219,7 @@ class Component extends DCLogic {
     const etaS = Math.max(0, Math.ceil(90 - helpEl));
     return {
       halo: kv.halo, help: kv.help, rows, me, sinceText: kv.sinceText,
+      nfcBanner: tick < (s.nfcUntil || 0),
       phoneHelpBg: alarm ? (flashOn ? kv.help : '#7A1C05') : kv.help,
       phoneHelpTitle: alarm ? 'Help is on the way' : 'Call for help',
       phoneHelpSub: alarm ? (etaS > 0 ? 'Nurse arriving in ' + Math.floor(etaS / 60) + ':' + String(etaS % 60).padStart(2, '0') + '. You keep your place.' : 'A nurse is arriving now.') : 'Feeling worse? A nurse will come to you. You keep your place.',
@@ -1072,13 +1239,22 @@ class Component extends DCLogic {
   function fit() {
     const k = Math.min(1, kScaler.clientWidth / 920);
     kHost.style.transform = 'scale(' + k + ')';
-    kScaler.style.height = Math.ceil(1970 * k) + 'px';
+    kScaler.style.height = Math.ceil(2110 * k) + 'px';
     const pw = pHolder.parentNode.clientWidth;
     const p = Math.min(1, pw / 414);
     pFrame.style.transform = p < 1 ? 'scale(' + p + ')' : '';
     pHolder.style.height = p < 1 ? Math.ceil(pFrame.offsetHeight * p) + 'px' : '';
   }
   try { new ResizeObserver(fit).observe(document.querySelector('.stage')); } catch (e) { window.addEventListener('resize', fit); }
+
+  const deskOut = document.getElementById('deskOut');
+  document.querySelectorAll('.lvl').forEach((b) => b.addEventListener('click', () => {
+    const lv = Number(b.getAttribute('data-level'));
+    const tk = kiosk.checkIn(lv);
+    deskOut.textContent = lv === 1
+      ? tk + ' · Level 1: taken straight back. Not shown on the public screens.'
+      : tk + ' · Level ' + lv + ' ticket printed and link texted. Watch where it lands in line.';
+  }));
 
   renderAll();
   if (kiosk.componentDidMount) kiosk.componentDidMount();
