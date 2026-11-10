@@ -589,121 +589,132 @@ footer { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; g
   <div style="width: 900px; height: 36px; background: #151F25; border-radius: 6px"></div>
   <div style="margin-top: 22px; font-size: 16px; color: #46565F">Freestanding tower, same screen on all four sides</div>
 </div></template>
-<template id="phoneTpl"><div style="width: 390px; min-height: 1500px; box-sizing: border-box; background: #F4F6F5; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #12232E; display: flex; flex-direction: column">
+<template id="phoneTpl"><div style="width: 390px; box-sizing: border-box; background: #F4F6F5; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #12232E; display: flex; flex-direction: column; padding-bottom: 8px">
 
+  <!-- "page sent" notification after tapping the kiosk pad -->
   <sc-if value="{{nfcBanner}}" hint-placeholder-val="{{false}}">
-    <div role="status" style="position: sticky; top: 8px; z-index: 5; margin: 8px 10px -84px; height: 76px; box-sizing: border-box; padding: 12px 14px; border-radius: 18px; background: rgba(244,246,245,0.97); box-shadow: 0 6px 24px rgba(18,35,46,0.28); display: flex; align-items: center; gap: 12px">
+    <div role="status" style="position: sticky; top: 8px; z-index: 6; margin: 8px 10px -84px; height: 76px; box-sizing: border-box; padding: 12px 14px; border-radius: 18px; background: rgba(244,246,245,0.97); box-shadow: 0 6px 24px rgba(18,35,46,0.28); display: flex; align-items: center; gap: 12px">
       <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #12232E; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="16" fill="none" stroke="#3FC1C0" stroke-width="4"></circle><path d="M22 14v16M14 22h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path></svg></div>
       <div style="display: flex; flex-direction: column"><div style="font-size: 14px; font-weight: 700">H.A.L.O. · now</div><div style="font-size: 14px; color: #2E3E47">Your wait page is ready. Tap to open.</div></div>
     </div>
   </sc-if>
-  <!-- Header -->
-  <header style="padding: 20px 20px 18px 20px; background: #12232E; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between">
+
+  <!-- Header (scrolls away) -->
+  <header style="padding: 18px 20px 16px 20px; background: #12232E; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between">
     <div style="display: flex; align-items: center; gap: 12px">
-      <svg width="34" height="34" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17" fill="none" stroke="{{halo}}" stroke-width="4"></circle><path d="M22 14v16M14 22h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path></svg>
+      <svg width="32" height="32" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17" fill="none" stroke="{{halo}}" stroke-width="4"></circle><path d="M22 14v16M14 22h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path></svg>
       <div style="display: flex; flex-direction: column">
-        <div style="font-size: 22px; font-weight: 700; letter-spacing: 2px">H.A.L.O.</div>
+        <div style="font-size: 21px; font-weight: 700; letter-spacing: 2px">H.A.L.O.</div>
         <div style="font-size: 13px; color: #C9D6DC">Emergency Department</div>
       </div>
     </div>
     <div style="font-size: 13px; color: #C9D6DC; text-align: right; max-width: 110px">{{sinceText}}</div>
   </header>
 
-  <!-- Your ticket -->
-  <section style="padding: 20px 20px 0 20px">
-    <div style="background: #FFFFFF; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: inset 0 0 0 2px #0F5F63">
-      <div style="display: flex; justify-content: space-between; align-items: baseline">
-        <div style="font-size: 14px; font-weight: 700; letter-spacing: 1px; color: #46565F">YOUR TICKET</div>
-        <div style="font-size: 14px; color: #46565F">{{me.checkin}}</div>
-      </div>
-      <div style="display: flex; align-items: flex-end; justify-content: space-between">
-        <div style="display: flex; flex-direction: column; gap: 8px"><div style="font-size: 44px; font-weight: 700; line-height: 1">A118</div><span style="{{me.lvlStyle}}">{{me.lvlText}}</span></div>
+  <!-- Your ticket: stays pinned while you scroll -->
+  <div style="position: sticky; top: 0; z-index: 4; background: #F4F6F5; padding: 12px 16px 10px 16px; box-shadow: 0 6px 10px -8px rgba(18,35,46,0.35)">
+    <div style="background: #FFFFFF; border-radius: 16px; padding: 14px 16px; box-shadow: inset 0 0 0 2px #0F5F63; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div style="font-size: 30px; font-weight: 700; line-height: 1">A118</div>
+          <span style="{{me.lvlStyle}}">{{me.lvlText}}</span>
+        </div>
         <div style="display: flex; flex-direction: column; align-items: flex-end">
-          <div style="font-size: 14px; color: #46565F">Estimated wait</div>
-          <div style="font-size: 40px; font-weight: 700; line-height: 1; color: #0F5F63; white-space: nowrap">{{me.wait}}</div>
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; color: #46565F">YOUR WAIT</div>
+          <div style="font-size: 30px; font-weight: 700; line-height: 1; color: #0F5F63; white-space: nowrap">{{me.wait}}</div>
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
-        <div style="background: #EEF3F2; border-radius: 10px; padding: 10px 12px"><div style="font-size: 22px; font-weight: 700">{{me.ahead}}</div><div style="font-size: 14px; color: #46565F">people ahead</div></div>
-        <div style="background: #EEF3F2; border-radius: 10px; padding: 10px 12px"><div style="font-size: 22px; font-weight: 700">{{me.waited}}</div><div style="font-size: 14px; color: #46565F">waited so far</div></div>
-      </div>
+      <div style="font-size: 14px; color: #46565F">{{me.line}}</div>
     </div>
-  </section>
+  </div>
 
   <!-- Call for help -->
-  <section style="padding: 16px 20px 0 20px">
-    <button onClick="{{pressHelp}}" aria-label="Call for help" style="width: 100%; border: 0; border-radius: 16px; background: {{phoneHelpBg}}; color: #FFFFFF; font-family: inherit; padding: 18px 20px; display: flex; align-items: center; gap: 16px; text-align: left; cursor: pointer">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+  <section style="padding: 6px 16px 0 16px">
+    <button onClick="{{pressHelp}}" aria-label="Call for help" style="width: 100%; border: 0; border-radius: 16px; background: {{phoneHelpBg}}; color: #FFFFFF; font-family: inherit; padding: 16px 18px; display: flex; align-items: center; gap: 14px; text-align: left; cursor: pointer">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
       <span style="display: flex; flex-direction: column; gap: 2px">
-        <span style="font-size: 22px; font-weight: 700">{{phoneHelpTitle}}</span>
+        <span style="font-size: 21px; font-weight: 700">{{phoneHelpTitle}}</span>
         <span style="font-size: 15px; line-height: 1.3">{{phoneHelpSub}}</span>
       </span>
     </button>
   </section>
 
-  <!-- Wait list -->
-  <section style="padding: 24px 20px 0 20px; display: flex; flex-direction: column; gap: 10px">
-    <div style="display: flex; align-items: baseline; justify-content: space-between">
-      <h2 style="margin: 0; font-size: 22px">Wait list</h2>
-      <div style="font-size: 14px; color: #46565F">Tap to see why</div>
-    </div>
-    <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
-      <button onClick="{{r.onTap}}" style="{{r.rowStyle}}">
-        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%">
-          <div style="display: flex; flex-direction: column; gap: 2px">
-            <div style="font-size: 20px; font-weight: 700">{{r.ticket}}<sc-if value="{{r.you}}" hint-placeholder-val="{{false}}"><span style="margin-left: 8px; font-size: 12px; font-weight: 700; color: #FFFFFF; background: #0F5F63; border-radius: 4px; padding: 2px 6px; vertical-align: middle">YOU</span></sc-if></div>
-            <div style="font-size: 14px; color: #2E3E47; display: flex; align-items: center; gap: 8px; flex-wrap: wrap"><span style="{{r.lvlStylePh}}">{{r.lvlText}}</span>{{r.status}}</div>
-          </div>
-          <div style="font-size: 20px; font-weight: 700">{{r.wait}}</div>
-        </div>
-        <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
-          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #B9CFD0; font-size: 15px; line-height: 1.4; text-align: left; width: 100%">{{r.reason}}</div>
-        </sc-if>
-      </button>
-    </sc-for>
+  <!-- Wait list: a dropdown -->
+  <section style="padding: 16px 16px 0 16px; display: flex; flex-direction: column; gap: 8px">
+    <button onClick="{{toggleList}}" aria-expanded="{{listExpanded}}" style="width: 100%; border: 0; border-radius: 14px; background: #FFFFFF; color: #12232E; font-family: inherit; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; cursor: pointer">
+      <span style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 19px; font-weight: 700">Wait list</span>
+        <span style="font-size: 14px; color: #46565F">{{listSummary}}</span>
+      </span>
+      <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #0F5F63">
+        {{listAction}}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F5F63" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{chevStyle}}"><path d="M6 9l6 6 6-6"></path></svg>
+      </span>
+    </button>
+    <sc-if value="{{listOpen}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="font-size: 13px; color: #46565F; padding: 0 4px">Seen by triage level first, then arrival. Tap a ticket to see why.</div>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+          <button onClick="{{r.onTap}}" style="{{r.rowStyle}}">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%">
+              <div style="display: flex; flex-direction: column; gap: 2px">
+                <div style="font-size: 19px; font-weight: 700">{{r.ticket}}<sc-if value="{{r.you}}" hint-placeholder-val="{{false}}"><span style="margin-left: 8px; font-size: 12px; font-weight: 700; color: #FFFFFF; background: #0F5F63; border-radius: 4px; padding: 2px 6px; vertical-align: middle">YOU</span></sc-if></div>
+                <div style="font-size: 14px; color: #2E3E47; display: flex; align-items: center; gap: 8px; flex-wrap: wrap"><span style="{{r.lvlStylePh}}">{{r.lvlText}}</span>{{r.status}}</div>
+              </div>
+              <div style="font-size: 19px; font-weight: 700; white-space: nowrap">{{r.wait}}</div>
+            </div>
+            <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
+              <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #B9CFD0; font-size: 15px; line-height: 1.4; text-align: left; width: 100%">{{r.reason}}</div>
+            </sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
   </section>
 
   <!-- Map -->
-  <section style="padding: 24px 20px 0 20px; display: flex; flex-direction: column; gap: 10px">
-    <div style="display: flex; justify-content: space-between; align-items: baseline">
-      <h2 style="margin: 0; font-size: 22px">Hospital map</h2>
-      <div style="display: flex; gap: 10px; font-size: 13px; color: #46565F">
-        <span style="display: flex; align-items: center; gap: 4px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #CDE6E4"></span>Open</span>
-        <span style="display: flex; align-items: center; gap: 4px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #E3E3E3; border: 1px dashed #6B6B6B"></span>Closed</span>
+  <section style="padding: 20px 16px 0 16px; display: flex; flex-direction: column; gap: 10px">
+    <h2 style="margin: 0; font-size: 19px">Hospital map · Floor 1</h2>
+    <div style="background: #FFFFFF; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 60px 60px 60px 60px; gap: 6px; font-size: 13px; font-weight: 700">
+        <div style="grid-column: span 2; grid-row: span 2; background: #0F5F63; color: #FFFFFF; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; justify-content: space-between">
+          <span>ER Waiting Room</span>
+          <span style="display: flex; align-items: center; gap: 5px; font-size: 12px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #FFFFFF"></span>You are here</span>
+        </div>
+        <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Restrooms<div style="font-weight: 400; font-size: 12px">1 min walk</div></div>
+        <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Vending<div style="font-weight: 400; font-size: 12px">24 hr</div></div>
+        <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Pharmacy<div style="font-weight: 400; font-size: 12px">Until 9 PM</div></div>
+        <div style="background: repeating-linear-gradient(45deg, #E3E3E3 0 4px, #CFCFCF 4px 7px); border: 1px dashed #6B6B6B; color: #4A4A4A; border-radius: 8px; padding: 8px">Radiology<div style="font-weight: 400; font-size: 12px">Closed</div></div>
+        <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Cafeteria<div style="font-weight: 400; font-size: 12px">Until 8 PM</div></div>
+        <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Chapel</div>
+        <div style="grid-column: span 2; background: #CDE6E4; border-radius: 8px; padding: 8px">Exit &amp; Parking</div>
       </div>
-    </div>
-    <div style="background: #FFFFFF; border-radius: 14px; padding: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 64px 64px 64px 64px; gap: 6px; font-size: 13px; font-weight: 700">
-      <div style="grid-column: span 2; grid-row: span 2; background: #0F5F63; color: #FFFFFF; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; justify-content: space-between">
-        <span>ER Waiting Room</span>
-        <span style="display: flex; align-items: center; gap: 5px; font-size: 12px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #FFFFFF"></span>You are here</span>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 12px; color: #2E3E47; border-top: 1px solid #DDE5E3; padding-top: 8px">
+        <span style="font-weight: 700; letter-spacing: 1px">KEY</span>
+        <span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 14px; border-radius: 3px; background: #0F5F63; display: flex; align-items: center; justify-content: center"><span style="width: 5px; height: 5px; border-radius: 3px; background: #FFFFFF"></span></span>You are here</span>
+        <span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 14px; border-radius: 3px; background: #CDE6E4; border: 1px solid #9FB8B6"></span>Open</span>
+        <span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 14px; border-radius: 3px; background: repeating-linear-gradient(45deg, #E3E3E3 0 3px, #B5B5B5 3px 5px); border: 1px dashed #6B6B6B"></span>Closed</span>
       </div>
-      <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Restrooms<div style="font-weight: 400; font-size: 12px">1 min walk</div></div>
-      <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Vending<div style="font-weight: 400; font-size: 12px">24 hr</div></div>
-      <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Pharmacy<div style="font-weight: 400; font-size: 12px">Until 9 PM</div></div>
-      <div style="background: #E3E3E3; border: 1px dashed #6B6B6B; color: #4A4A4A; border-radius: 8px; padding: 8px">Radiology<div style="font-weight: 400; font-size: 12px">Closed</div></div>
-      <div style="grid-column: span 2; background: #CDE6E4; border-radius: 8px; padding: 8px">Cafeteria<div style="font-weight: 400; font-size: 12px">Open until 8 PM</div></div>
-      <div style="background: #CDE6E4; border-radius: 8px; padding: 8px">Chapel</div>
-      <div style="grid-column: span 2; background: #CDE6E4; border-radius: 8px; padding: 8px">Exit &amp; Parking</div>
     </div>
   </section>
 
-  <!-- Videos -->
-  <section style="padding: 24px 20px 0 20px; display: flex; flex-direction: column; gap: 10px">
-    <h2 style="margin: 0; font-size: 22px">While you wait</h2>
+  <!-- Video -->
+  <section style="padding: 20px 16px 0 16px; display: flex; flex-direction: column; gap: 10px">
+    <h2 style="margin: 0; font-size: 19px">While you wait</h2>
     <div style="background: #FFFFFF; border-radius: 14px; overflow: hidden">
-      <div style="height: 170px; background: #12232E; display: flex; align-items: center; justify-content: center; position: relative">
-        <svg width="52" height="52" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="none" stroke="#FFFFFF" stroke-width="1.5"></circle><path d="M10 8l6 4-6 4z" fill="#FFFFFF"></path></svg>
-        <div style="position: absolute; left: 12px; right: 12px; bottom: 12px; height: 4px; border-radius: 2px; background: #3A4C56"><div style="width: 38%; height: 4px; border-radius: 2px; background: {{halo}}"></div></div>
+      <div style="height: 150px; background: #0F5F63; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; position: relative; color: #FFFFFF">
+        <span style="position: absolute; top: 10px; left: 12px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: #CDE6E4">PATIENT EDUCATION</span>
+        <svg width="48" height="48" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.25)" stroke="#FFFFFF" stroke-width="1.5"></circle><path d="M10 8l6 4-6 4z" fill="#FFFFFF"></path></svg>
+        <span style="font-size: 15px; font-weight: 700">While You Wait</span>
       </div>
-      <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
-        <div style="font-size: 18px; font-weight: 700">While you wait: staying safe</div>
-        <div style="font-size: 14px; color: #46565F">Captions on · Plays on the H.A.L.O. kiosk</div>
+      <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 17px; font-weight: 700">While you wait: staying safe</div>
+        <div style="font-size: 14px; color: #46565F">0:30 · Captions on · Plays on the H.A.L.O. kiosk</div>
       </div>
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer style="margin-top: auto; padding: 20px; display: flex; justify-content: space-between; font-size: 14px; color: #46565F">
+  <footer style="padding: 18px 16px 10px; display: flex; justify-content: space-between; font-size: 14px; color: #46565F">
     <span>Same info as the H.A.L.O. kiosk</span>
     <a href="#">Español</a>
   </footer>
@@ -1340,7 +1351,7 @@ class Component extends DCLogic {
   const kTpl = document.getElementById('kioskTpl'), pTpl = document.getElementById('phoneTpl');
   mountClicks(kHost); mountClicks(pHost);
 
-  const phone = { open: 'A118' };
+  const phone = { open: 'A118', listOpen: false };
   const checkin = new Date(Date.now() - 43 * 60000);
   const ME = 'A118';
 
@@ -1364,9 +1375,11 @@ class Component extends DCLogic {
       ahead: idx < 0 ? 0 : idx,
       waited: waited + ' min',
       checkin: 'Checked in ' + kiosk.fmtTime(checkin),
-      lvlText: 'Level 4 · ' + L[4].name,
-      lvlStyle: 'align-self: flex-start; font-size: 13px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: ' + L[4].bg + '; color: ' + L[4].fg
+      lvlText: 'Level 4',
+      lvlStyle: 'display: inline-block; white-space: nowrap; font-size: 13px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: ' + L[4].bg + '; color: ' + L[4].fg,
+      line: idx < 0 ? 'You’re being called. Head to the doors on your right.' : (idx === 0 ? 'You’re being called now' : idx + (idx === 1 ? ' person' : ' people') + ' ahead of you · in line ' + waited + ' min')
     };
+    const ord = (n) => n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th');
     const alarm = s.mode === 'help';
     const tick = s.tick || 0;
     const flashOn = Math.floor(tick / 5) % 2 === 0;
@@ -1375,6 +1388,11 @@ class Component extends DCLogic {
     return {
       halo: kv.halo, help: kv.help, rows, me, sinceText: kv.sinceText,
       nfcBanner: tick < (s.nfcUntil || 0),
+      listOpen: phone.listOpen, listExpanded: phone.listOpen ? 'true' : 'false',
+      listSummary: q.length + ' waiting' + (idx < 0 ? '' : ' · you’re ' + ord(idx + 1) + ' in line'),
+      listAction: phone.listOpen ? 'Hide' : 'Show',
+      chevStyle: phone.listOpen ? 'transform: rotate(180deg)' : '',
+      toggleList: () => { phone.listOpen = !phone.listOpen; schedule(); },
       phoneHelpBg: alarm ? (flashOn ? kv.help : '#7A1C05') : kv.help,
       phoneHelpTitle: alarm ? 'Help is on the way' : 'Call for help',
       phoneHelpSub: alarm ? (etaS > 0 ? 'Nurse arriving in ' + Math.floor(etaS / 60) + ':' + String(etaS % 60).padStart(2, '0') + '. You keep your place.' : 'A nurse is arriving now.') : 'Feeling worse? A nurse will come to you. You keep your place.',
