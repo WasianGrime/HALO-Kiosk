@@ -1,6 +1,8 @@
 # H.A.L.O. Kiosk
 
-An interactive prototype of **H.A.L.O.**, a live wait screen for the emergency room waiting room. A four-sided kiosk tower stands in the middle of the room, and patients can scan a QR code to see the same information on their phone. Both screens share one live wait list.
+An interactive prototype of **H.A.L.O.**, a live wait screen for the emergency room waiting room, designed as a concept for the **IU Health Bloomington Hospital** emergency department. A four-sided kiosk tower stands in the middle of the room, and patients can scan a QR code to see the same information on their phone. Both screens share one live wait list.
+
+> Student project. Not affiliated with or endorsed by IU Health.
 
 **Live demo:** https://wasiangrime.github.io/HALO-Kiosk/
 
@@ -40,6 +42,6 @@ An interactive prototype of **H.A.L.O.**, a live wait screen for the emergency r
 
 Everything is in one file, `index.html`, with no build step and no server needed. Open it in any browser, or use the live demo link above.
 
-All tickets, times and places are examples. This prototype is not connected to a real hospital system.
+All tickets, times and places are examples. This prototype is not connected to a real hospital system and is not affiliated with or endorsed by IU Health.
 
 *[TEAM NAMES] · ER Wait-Time Concept*
