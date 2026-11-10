@@ -18,8 +18,10 @@ An interactive prototype of **H.A.L.O.**, a live wait screen for the emergency r
 | Detailed map | Tapping a place opens a floor plan with a moving route from "You are here," hours, walking time and a full map key. |
 | Patient education video | A 30-second captioned stick-figure spot with three safety tips: clean hands, ask before you eat or drink, and tell staff if you feel worse. |
 | Phone page | Shows the patient's own ticket (A118), triage level, people ahead and wait time, all synced to the kiosk. |
+| 3D model | Under the front desk panel: the printable tower model, rebuilt from our PrusaSlicer file. Drag to turn it, zoom in and out, or press **Start rotating**. Runs on a small built-in WebGL viewer, so it needs no internet. The original print file is in [`model/`](model/). |
 
 <p>
+  <img src="screenshots/3d-model.png" alt="3D model of the hexagonal kiosk tower" width="32%">
   <img src="screenshots/front-desk.png" alt="Front desk check-in panel with triage levels 1 to 5" width="32%">
   <img src="screenshots/tap-your-phone.png" alt="Scan the code or hold your phone on the tap pad" width="62%">
 </p>
