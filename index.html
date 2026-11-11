@@ -43,16 +43,26 @@ button:focus-visible, a:focus-visible { outline: 3px solid #3FC1C0; outline-offs
 
 /* kiosk view */
 .kiosk-view { display: flex; align-items: stretch; min-height: calc(100vh - var(--nav-h) - env(safe-area-inset-top, 0px)); }
-.stage { position: relative; flex: 1 1 auto; min-width: 0; min-height: 560px; overflow: hidden; background: radial-gradient(ellipse 70% 60% at 62% 42%, #FFFFFF 0%, #F6F2EB 45%, #EAE2D4 100%); }
+.stage { position: relative; flex: 1 1 auto; min-width: 0; min-height: 620px; overflow: hidden; background: radial-gradient(ellipse 46% 52% at 50% 50%, #34474F 0%, #22313A 42%, #141E25 74%, #0C1318 100%); }
+.stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 120% 90% at 50% 40%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.35) 100%); }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
 .stage canvas.dragging { cursor: grabbing; }
 .stage canvas.over-screen { cursor: pointer; }
-.stage-copy { position: absolute; left: 0; top: 0; padding-top: 40px; max-width: 520px; pointer-events: none; }
+.stage-copy { position: absolute; z-index: 2; left: 0; right: 0; top: 0; padding-top: 28px; text-align: center; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
 .eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.14em; color: var(--crimson); text-transform: uppercase; margin: 0; }
-.stage h1 { font-family: var(--display); color: var(--crimson); font-size: clamp(52px, 7vw, 92px); line-height: 1; margin: 8px 0 14px; letter-spacing: 0.02em; }
-.stage .lede { font-size: 19px; color: #2E3E47; margin: 0; max-width: 26em; text-wrap: pretty; }
-.stage-tools { position: absolute; left: 0; bottom: 0; padding-bottom: 28px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
-.hint { margin: 0; font-size: 15px; color: var(--ink); background: rgba(251,248,243,0.92); border: 1px solid var(--wall-deep); border-radius: 999px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; }
+.stage .eyebrow { color: #E7B7B9; }
+.stage h1 { font-family: var(--display); color: #F6F1E8; font-size: clamp(40px, 5vw, 62px); line-height: 1; margin: 6px 0 8px; letter-spacing: 0.04em; }
+.stage .lede { font-size: 17px; color: #BFD0D6; margin: 0; max-width: 34em; text-wrap: balance; }
+.stage-tools { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding-bottom: 24px; display: flex; flex-direction: column; gap: 10px; align-items: center; pointer-events: none; }
+.stage-tools > * { pointer-events: auto; }
+.stage .tools { background: rgba(244,246,245,0.08); border: 1px solid rgba(244,246,245,0.16); border-radius: 16px; padding: 6px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); justify-content: center; }
+.stage .tools button { background: transparent; border-color: transparent; color: #F4F6F5; }
+.stage .tools button:hover { background: rgba(244,246,245,0.10); border-color: transparent; }
+.stage .tools button[aria-pressed="true"] { background: #F2EDE4; border-color: #F2EDE4; color: var(--crimson); }
+.stage .tools .sep { width: 1px; align-self: stretch; margin: 6px 2px; background: rgba(244,246,245,0.18); }
+.stage .tools .primary { background: #F2EDE4; color: var(--crimson); }
+.stage .tools .primary:hover { background: #FFFFFF; }
+.hint { margin: 0; font-size: 14px; color: #BFD0D6; display: flex; align-items: center; gap: 8px; }
 .hint .dot { width: 10px; height: 10px; border-radius: 5px; background: #3FC1C0; box-shadow: 0 0 0 4px rgba(63,193,192,0.25); flex-shrink: 0; }
 .event { margin: 0; min-height: 24px; font-size: 15px; font-weight: 700; color: #5A4300; }
 .event:empty { display: none; }
@@ -62,8 +72,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid #3FC1C0; outline-offs
 .tools button:hover, .btn:hover { border-color: var(--crimson); }
 .tools button[aria-pressed="true"] { background: var(--crimson); border-color: var(--crimson); color: #FFFFFF; }
 .btn-primary { background: var(--crimson); border-color: var(--crimson); color: #FFFFFF; text-decoration: none; display: inline-flex; align-items: center; }
-.stage.panel-open .stage-copy { display: none; }
-.no-gl { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; color: var(--muted); }
+.stage.panel-open .lede { display: none; }
+.no-gl { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; color: #BFD0D6; }
 
 .panel { flex: 0 0 min(520px, 42vw); background: var(--paper); border-left: 1px solid var(--wall-deep); display: flex; flex-direction: column; max-height: calc(100vh - var(--nav-h) - env(safe-area-inset-top, 0px)); position: sticky; top: calc(var(--nav-h) + env(safe-area-inset-top, 0px)); }
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--wall-deep); }
@@ -153,14 +163,16 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
       </div>
       <div class="stage-tools gutter">
         <p class="event" id="stageEvent" aria-live="polite"></p>
-        <p class="hint"><span class="dot" aria-hidden="true"></span>Click a screen to use the kiosk · drag to turn</p>
-        <div class="tools">
+        <div class="tools" role="toolbar" aria-label="3D view controls">
           <button type="button" id="spinBtn" aria-pressed="false">Start rotating</button>
-          <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+          <span class="sep" aria-hidden="true"></span>
           <button type="button" id="zoomOut" aria-label="Zoom out">&minus;</button>
+          <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
           <button type="button" id="resetView">Reset view</button>
-          <button type="button" id="openPanelBtn">Open kiosk screen</button>
+          <span class="sep" aria-hidden="true"></span>
+          <button type="button" id="openPanelBtn" class="primary">Open kiosk screen</button>
         </div>
+        <p class="hint"><span class="dot" aria-hidden="true"></span>Click any screen to use it · drag to turn</p>
       </div>
     </div>
     <aside class="panel" id="kioskPanel" aria-label="Kiosk screen" hidden>
@@ -1518,7 +1530,7 @@ class Component extends DCLogic {
     });
     const scrP = [], scrUV = [];
     screens.forEach((s) => { scrP.push(...s.TL, ...s.BL, ...s.BR, ...s.TL, ...s.BR, ...s.TR); scrUV.push(0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0); });
-    const shadowR = 62, sy = -H / 2 - 0.02;
+    const shadowR = 110, sy = -H / 2 - 0.02;
     const shadowP = [-shadowR, sy, -shadowR, shadowR, sy, -shadowR, shadowR, sy, shadowR, -shadowR, sy, -shadowR, shadowR, sy, shadowR, -shadowR, sy, shadowR];
 
     // ---- GL setup
@@ -1532,8 +1544,8 @@ class Component extends DCLogic {
       ' float hemi = 0.5 + 0.5 * N.y; vec3 amb = mix(vec3(0.16, 0.15, 0.14), vec3(0.46, 0.47, 0.48), hemi);' +
       ' float occ = 0.82 + 0.18 * clamp((vw.y + 40.0) / 80.0, 0.0, 1.0);' +
       ' vec3 Hh = normalize(L1 + V); float sp = pow(max(dot(N, Hh), 0.0), 60.0) * gloss;' +
-      ' float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0) * 0.18;' +
-      ' vec3 c = col * (amb + 0.9 * max(dot(N, L1), 0.0) + 0.32 * max(dot(N, L2), 0.0)) * occ + vec3(sp + rim) + emis;' +
+      ' float rim = pow(1.0 - max(dot(N, V), 0.0), 2.6) * 0.5;' +
+      ' vec3 c = col * (amb + 0.9 * max(dot(N, L1), 0.0) + 0.32 * max(dot(N, L2), 0.0)) * occ + vec3(sp) + vec3(0.45, 0.68, 0.72) * rim + emis;' +
       ' gl_FragColor = vec4(c, 1.0); }');
     const scrP_ = prog(
       'attribute vec3 p; attribute vec2 uv; uniform mat4 vp; varying vec2 vu; void main(){ vu = uv; gl_Position = vp * vec4(p, 1.0); }',
@@ -1542,7 +1554,7 @@ class Component extends DCLogic {
       ' c = c * (0.94 + 0.10 * hl) + vec3(sheen); gl_FragColor = vec4(c, 1.0); }');
     const shP = prog(
       'attribute vec3 p; uniform mat4 vp; varying vec2 q; void main(){ q = p.xz; gl_Position = vp * vec4(p, 1.0); }',
-      'precision mediump float; varying vec2 q; void main(){ float r = length(q * vec2(1.0, 1.0)) / 40.0; float a = 0.34 * exp(-r * r * 2.4); gl_FragColor = vec4(vec3(0.07, 0.10, 0.12) * a, a); }');
+      'precision mediump float; varying vec2 q; void main(){ float r = length(q) / 40.0; float pool = 0.30 * exp(-r * r * 0.9); float sh = 0.55 * exp(-r * r * 3.2); gl_FragColor = vec4(vec3(0.55, 0.68, 0.70) * pool * (1.0 - sh), sh * 0.85); }');
     function buf(arr) { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW); return b; }
     const G = {
       bodyP: buf(body.p), bodyN: buf(body.n), bodyC: body.p.length / 3,
@@ -1580,7 +1592,7 @@ class Component extends DCLogic {
     const xf = (m, v) => [0, 1, 2, 3].map((i) => m[i] * v[0] + m[4 + i] * v[1] + m[8 + i] * v[2] + m[12 + i] * v[3]);
 
     // ---- camera
-    const START = { yaw: 0.52, pitch: 0.2, dist: 186 };
+    const START = { yaw: 0.52, pitch: 0.16, dist: 238 };
     let yaw = START.yaw, pitch = START.pitch, dist = START.dist, spinning = false, dirty = true, panelOpen = false;
     let VP = null, eye = [0, 0, 0], hover = -1;
     function resize() {
@@ -1591,9 +1603,7 @@ class Component extends DCLogic {
     function matrices() {
       const asp = canvas.width / canvas.height;
       eye = [dist * Math.cos(pitch) * Math.sin(yaw), 4 + dist * Math.sin(pitch), dist * Math.cos(pitch) * Math.cos(yaw)];
-      const wide = canvas.clientWidth > 760 && !panelOpen;
-      const shift = wide ? 0.32 : 0;
-      const T = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, shift, wide ? 0 : -0.04, 0, 1];
+      const T = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
       const fov = asp < 0.8 ? 0.78 : 0.62;
       VP = mul(T, mul(persp(fov, asp, 20, 800), lookAt(eye, [0, 5, 0], up)));
     }
@@ -1769,7 +1779,7 @@ class Component extends DCLogic {
         gl.bindBuffer(gl.ARRAY_BUFFER, bn); gl.enableVertexAttribArray(mn); gl.vertexAttribPointer(mn, 3, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.TRIANGLES, 0, count);
       };
-      drawMesh(G.bodyP, G.bodyN, G.bodyC, [0.20, 0.27, 0.31], [0, 0, 0], 0.32);
+      drawMesh(G.bodyP, G.bodyN, G.bodyC, [0.25, 0.32, 0.36], [0, 0, 0], 0.4);
       const s = kiosk.state, tick = s.tick || 0, flashOn = Math.floor(tick / 5) % 2 === 0;
       const ringE = s.mode === 'help' ? (flashOn ? [1.0, 0.25, 0.12] : [0.45, 0.08, 0.03]) : [0.25, 0.76, 0.75];
       drawMesh(G.ringP, G.ringN, G.ringC, [0.15, 0.15, 0.15], ringE, 0.2);
