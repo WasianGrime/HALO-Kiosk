@@ -73,6 +73,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid #3FC1C0; outline-offs
 .tools button[aria-pressed="true"] { background: var(--crimson); border-color: var(--crimson); color: #FFFFFF; }
 .btn-primary { background: var(--crimson); border-color: var(--crimson); color: #FFFFFF; text-decoration: none; display: inline-flex; align-items: center; }
 .stage.panel-open .lede { display: none; }
+.stage-copy { transition: opacity 0.35s ease; }
+.stage.close-up .stage-copy { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .stage-copy { transition: none; } }
 .no-gl { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; color: #BFD0D6; }
 
 .panel { flex: 0 0 min(520px, 42vw); background: var(--paper); border-left: 1px solid var(--wall-deep); display: flex; flex-direction: column; max-height: calc(100vh - var(--nav-h) - env(safe-area-inset-top, 0px)); position: sticky; top: calc(var(--nav-h) + env(safe-area-inset-top, 0px)); }
@@ -171,11 +174,12 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
           <span class="sep" aria-hidden="true"></span>
           <button type="button" id="zoomOut" aria-label="Zoom out">&minus;</button>
           <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+          <button type="button" id="closeUpBtn" aria-pressed="false">Close-up</button>
           <button type="button" id="resetView">Reset view</button>
           <span class="sep" aria-hidden="true"></span>
           <button type="button" id="openPanelBtn" class="primary">Open kiosk screen</button>
         </div>
-        <p class="hint"><span class="dot" aria-hidden="true"></span>Click any screen to use it · drag to turn</p>
+        <p class="hint"><span class="dot" aria-hidden="true"></span>Click a screen to use it · double-click to look closer · drag to turn</p>
       </div>
     </div>
     <aside class="panel" id="kioskPanel" aria-label="Screens" hidden>
@@ -1550,7 +1554,7 @@ class Component extends DCLogic {
       const r = [n[2], 0, -n[0]]; // viewer's right when facing this side
       const full = Math.hypot(B[0] - A[0], B[2] - A[2]);
       const w = full * (M.screenInset[1] - M.screenInset[0]);
-      const off = 0.16;
+      const off = 0.6;
       const cx = mx + n[0] * off, cz = mz + n[2] * off;
       const TL = [cx - r[0] * w / 2, yTop, cz - r[2] * w / 2], TR = [cx + r[0] * w / 2, yTop, cz + r[2] * w / 2];
       const BR = [TR[0], yBot, TR[2]], BL = [TL[0], yBot, TL[2]];
@@ -1597,7 +1601,9 @@ class Component extends DCLogic {
     };
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    const aniso = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
+    if (aniso) gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -1625,25 +1631,35 @@ class Component extends DCLogic {
     }
     const xf = (m, v) => [0, 1, 2, 3].map((i) => m[i] * v[0] + m[4 + i] * v[1] + m[8 + i] * v[2] + m[12 + i] * v[3]);
 
-    // ---- camera
-    const START = { yaw: 0.52, pitch: 0.27, dist: 240 };
-    let yaw = START.yaw, pitch = START.pitch, dist = START.dist, spinning = false, dirty = true, panelOpen = false;
+    // ---- camera: everything eases toward a goal, so motion is smooth
+    const START = { yaw: 0.52, pitch: 0.24 };
+    const BASE_SY = -0.07, SCREEN_Y = (yTop + yBot) / 2 + 1;
+    const cam = { yaw: START.yaw, pitch: START.pitch, dist: 215, ty: 4, sy: BASE_SY };
+    const goal = Object.assign({}, cam);
+    let fitDist = 215, vel = 0, spin = 0, spinGoal = 0, dirty = true, panelOpen = false, closeUp = false, userZoomed = false, firstFit = true;
     let VP = null, eye = [0, 0, 0], hover = -1;
+    function computeFit() {
+      const asp = canvas.width / canvas.height, t = Math.tan((asp < 0.8 ? 0.78 : 0.62) / 2);
+      fitDist = Math.max(46 / (t * 0.58), 40 / (t * asp * 0.6));
+      if (!userZoomed && !closeUp) { goal.dist = fitDist; if (firstFit) cam.dist = fitDist; }
+      firstFit = false;
+    }
     function resize() {
       const r = canvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
-      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; dirty = true; }
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; computeFit(); dirty = true; }
     }
     function matrices() {
       const asp = canvas.width / canvas.height;
-      eye = [dist * Math.cos(pitch) * Math.sin(yaw), 4 + dist * Math.sin(pitch), dist * Math.cos(pitch) * Math.cos(yaw)];
-      const T = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+      eye = [cam.dist * Math.cos(cam.pitch) * Math.sin(cam.yaw), cam.ty + cam.dist * Math.sin(cam.pitch), cam.dist * Math.cos(cam.pitch) * Math.cos(cam.yaw)];
+      const T = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, cam.sy, 0, 1];
       const fov = asp < 0.8 ? 0.78 : 0.62;
-      VP = mul(T, mul(persp(fov, asp, 20, 800), lookAt(eye, [0, 5, 0], up)));
+      VP = mul(T, mul(persp(fov, asp, 10, 900), lookAt(eye, [0, cam.ty, 0], up)));
     }
+    const near = (target, current) => target + Math.PI * 2 * Math.round((current - target) / (Math.PI * 2));
 
     // ---- live screen texture (drawn from the kiosk's own state)
-    const TW = 640, TH = Math.round(640 * 1580 / 760);
+    const TW = 1024, TH = 2048;
     const tc = document.createElement('canvas'); tc.width = TW; tc.height = TH;
     const c2 = tc.getContext('2d');
     let regions = [];
@@ -1787,6 +1803,7 @@ class Component extends DCLogic {
       drawScreen(kv);
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tc);
+      gl.generateMipmap(gl.TEXTURE_2D);
       dirty = true;
     }
 
@@ -1851,7 +1868,16 @@ class Component extends DCLogic {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function loop(t) {
       const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
-      if (spinning) { yaw += dt * 0.45; dirty = true; }
+      if (!(drag && drag.moved) && Math.abs(vel) > 1e-4) { goal.yaw += vel * dt; vel *= Math.exp(-dt * 3.2); }
+      spin += (spinGoal - spin) * (1 - Math.exp(-dt * 2.5));
+      if (Math.abs(spin) > 1e-4) goal.yaw += spin * dt;
+      const k = 1 - Math.exp(-dt * 9);
+      let moving = false;
+      for (const key of ['yaw', 'pitch', 'dist', 'ty', 'sy']) {
+        const d = goal[key] - cam[key];
+        if (Math.abs(d) > 1e-4) { cam[key] += d * k; moving = true; } else cam[key] = goal[key];
+      }
+      if (moving) dirty = true;
       if (kiosk.state.mode === 'help') dirty = true;
       if (dirty && view === 'kiosk') render();
       requestAnimationFrame(loop);
@@ -1888,11 +1914,44 @@ class Component extends DCLogic {
       openPanel('kiosk');
     }
     let drag = null;
-    canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false }; canvas.setPointerCapture(e.pointerId); });
+    const pts = new Map();
+    let pinch = null;
+    const closeBtn = document.getElementById('closeUpBtn');
+    function setClose(on) { closeUp = on; stage.classList.toggle('close-up', on); closeBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); closeBtn.textContent = on ? 'Back to tower' : 'Close-up'; }
+    function leaveClose() { if (!closeUp) return; setClose(false); goal.dist = userZoomed ? Math.max(goal.dist, fitDist * 0.8) : fitDist; goal.ty = 4; goal.sy = BASE_SY; goal.pitch = Math.max(goal.pitch, 0.18); }
+    function focusScreen(i) {
+      const n = screens[i].n;
+      setSpin(false); vel = 0; setClose(true);
+      goal.yaw = near(Math.atan2(n[0], n[2]), cam.yaw); goal.pitch = 0.03; goal.dist = 126; goal.ty = SCREEN_Y; goal.sy = 0.1;
+    }
+    function facingScreen() {
+      let best = 0, bd = 9;
+      screens.forEach((s, i) => { const d = Math.abs(near(Math.atan2(s.n[0], s.n[2]), cam.yaw) - cam.yaw); if (d < bd) { bd = d; best = i; } });
+      return best;
+    }
+    canvas.addEventListener('pointerdown', (e) => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      canvas.setPointerCapture(e.pointerId);
+      if (pts.size === 2) { const [p1, p2] = [...pts.values()]; pinch = { d: Math.hypot(p1.x - p2.x, p1.y - p2.y) }; drag = null; return; }
+      drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), moved: false }; vel = 0;
+    });
     canvas.addEventListener('pointermove', (e) => {
+      if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch && pts.size === 2) {
+        const [p1, p2] = [...pts.values()]; const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        if (d > 0 && pinch.d > 0) { goal.dist = Math.max(85, Math.min(420, goal.dist * pinch.d / d)); userZoomed = true; leaveClose(); }
+        pinch.d = d; return;
+      }
       if (drag) {
-        if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 5) { drag.moved = true; canvas.classList.add('dragging'); }
-        if (drag.moved) { yaw -= (e.clientX - drag.x) * 0.008; pitch = Math.max(-0.15, Math.min(1.2, pitch + (e.clientY - drag.y) * 0.006)); dirty = true; }
+        if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 5) { drag.moved = true; canvas.classList.add('dragging'); setSpin(false); leaveClose(); }
+        if (drag.moved) {
+          const now = performance.now(), dtv = Math.max(8, now - drag.t) / 1000;
+          const dYaw = -(e.clientX - drag.x) * 0.0085;
+          goal.yaw += dYaw;
+          goal.pitch = Math.max(-0.1, Math.min(1.15, goal.pitch + (e.clientY - drag.y) * 0.006));
+          vel = Math.max(-6, Math.min(6, vel * 0.6 + (dYaw / dtv) * 0.4));
+          drag.t = now;
+        }
         drag.x = e.clientX; drag.y = e.clientY;
         return;
       }
@@ -1901,18 +1960,31 @@ class Component extends DCLogic {
       if (h !== hover) { hover = h; dirty = true; canvas.classList.toggle('over-screen', h >= 0); }
     });
     const end = (e) => {
+      pts.delete(e.pointerId);
+      if (pinch) { if (pts.size < 2) pinch = null; drag = null; canvas.classList.remove('dragging'); return; }
       if (drag && !drag.moved && e.type === 'pointerup') { const hit = pick(e.clientX, e.clientY); if (hit) clickScreen(hit); }
+      if (drag && drag.moved && performance.now() - drag.t > 120) vel = 0;
       drag = null; canvas.classList.remove('dragging');
     };
     canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
     canvas.addEventListener('pointerleave', () => { if (!drag && hover !== -1) { hover = -1; dirty = true; canvas.classList.remove('over-screen'); } });
-    canvas.addEventListener('wheel', (e) => { e.preventDefault(); dist = Math.max(80, Math.min(360, dist * (e.deltaY > 0 ? 1.08 : 0.93))); dirty = true; }, { passive: false });
+    canvas.addEventListener('dblclick', (e) => { const hit = pick(e.clientX, e.clientY); if (hit) focusScreen(hit.i); });
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      goal.dist = Math.max(85, Math.min(420, goal.dist * Math.exp(dy * 0.0012)));
+      userZoomed = true; if (dy > 0) leaveClose();
+    }, { passive: false });
     const spinBtn = document.getElementById('spinBtn');
-    function setSpin(on) { spinning = on; spinBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); spinBtn.textContent = on ? 'Stop rotating' : 'Start rotating'; }
-    spinBtn.addEventListener('click', () => setSpin(!spinning));
-    document.getElementById('zoomIn').addEventListener('click', () => { dist = Math.max(80, dist * 0.85); dirty = true; });
-    document.getElementById('zoomOut').addEventListener('click', () => { dist = Math.min(360, dist * 1.18); dirty = true; });
-    document.getElementById('resetView').addEventListener('click', () => { yaw = START.yaw; pitch = START.pitch; dist = START.dist; setSpin(false); dirty = true; });
+    function setSpin(on) { spinGoal = on ? 0.42 : 0; spinBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); spinBtn.textContent = on ? 'Stop rotating' : 'Start rotating'; }
+    spinBtn.addEventListener('click', () => { const on = spinGoal === 0; if (on) leaveClose(); setSpin(on); });
+    document.getElementById('zoomIn').addEventListener('click', () => { goal.dist = Math.max(85, goal.dist * 0.8); userZoomed = true; });
+    document.getElementById('zoomOut').addEventListener('click', () => { goal.dist = Math.min(420, goal.dist * 1.25); userZoomed = true; leaveClose(); });
+    closeBtn.addEventListener('click', () => { if (closeUp) leaveClose(); else focusScreen(facingScreen()); });
+    document.getElementById('resetView').addEventListener('click', () => {
+      setSpin(false); setClose(false); vel = 0; userZoomed = false;
+      goal.yaw = near(START.yaw, cam.yaw); goal.pitch = START.pitch; goal.dist = fitDist; goal.ty = 4; goal.sy = BASE_SY;
+    });
     if (reduce) setSpin(false);
     return { wake() { dirty = true; }, setPanel(on) { panelOpen = on; dirty = true; }, update };
   })();
