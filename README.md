@@ -1,12 +1,23 @@
 # H.A.L.O. Kiosk
 
-An interactive prototype of **H.A.L.O.**, a live wait screen for the emergency room waiting room, designed as a concept for the **IU Health Bloomington Hospital** emergency department. A four-sided kiosk tower stands in the middle of the room, and patients can scan a QR code to see the same information on their phone. Both screens share one live wait list.
+An interactive prototype of **H.A.L.O.**, a live wait screen for the emergency room waiting room, designed as a concept for the **IU Health Bloomington Hospital** emergency department. A six-sided kiosk tower stands in the middle of the room with the same live screen on every side, and patients can scan a QR code or tap their phone to see the same information on their phone. Both share one live wait list.
 
 > Student project. Not affiliated with or endorsed by IU Health.
 
 **Live demo:** https://wasiangrime.github.io/HALO-Kiosk/
 
-![The H.A.L.O. kiosk tower](screenshots/kiosk-tower.png)
+![The 3D H.A.L.O. tower with live screens](screenshots/3d-tower.png)
+
+## How the site works
+
+- **Kiosk:** the home page is a 3D model of the tower, rebuilt from our PrusaSlicer print file. All six sides show the live kiosk screen. Click a screen and the full kiosk opens in a panel on the right. Whatever you clicked on the 3D screen also happens: Call for help sets off the alarm (the tower's halo ring flashes red), a map place opens directions, a ticket shows its reason, the video plays, and the tap pad sends the page to the phone. Drag to turn the tower, zoom, or press **Start rotating**.
+- **Phone view:** the phone page, synced to the kiosk.
+- **Front desk:** the staff check-in panel with triage levels and the current line.
+- **More info:** why H.A.L.O. exists, the features, how we got here, the concept PDFs and the print file.
+
+The 3D viewer is built into the page (plain WebGL), so the whole site is one file that works offline.
+
+![Call for help pressed on the 3D screen](screenshots/3d-alarm.png)
 
 ## What it does
 
@@ -20,7 +31,7 @@ An interactive prototype of **H.A.L.O.**, a live wait screen for the emergency r
 | Detailed map | Tapping a place opens a floor plan with a moving route from "You are here," hours, walking time and a full map key. |
 | Patient education video | A 30-second captioned stick-figure spot with three safety tips: clean hands, ask before you eat or drink, and tell staff if you feel worse. |
 | Phone page | A simple ticket card (number, triage level, wait, people ahead) stays pinned to the top as you scroll. The wait list is a dropdown, so the map and video are a short scroll away. Everything stays synced to the kiosk. |
-| 3D model | Under the front desk panel: the printable tower model, rebuilt from our PrusaSlicer file. Drag to turn it, zoom in and out, or press **Start rotating**. Runs on a small built-in WebGL viewer, so it needs no internet. The original print file is in [`model/`](model/). |
+| 3D tower | The home page: the printable tower model with live, clickable screens on all six sides. The original print file is in [`model/`](model/). |
 
 <p>
   <img src="screenshots/3d-model.png" alt="3D model of the hexagonal kiosk tower" width="32%">
