@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>H.A.L.O. Kiosk Prototype</title>
+<title>HALO Kiosk Prototype</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lora:wght@600;700&display=swap">
 <style>
@@ -77,8 +77,11 @@ button:focus-visible, a:focus-visible { outline: 3px solid #3FC1C0; outline-offs
 
 .panel { flex: 0 0 min(520px, 42vw); background: var(--paper); border-left: 1px solid var(--wall-deep); display: flex; flex-direction: column; max-height: calc(100vh - var(--nav-h) - env(safe-area-inset-top, 0px)); position: sticky; top: calc(var(--nav-h) + env(safe-area-inset-top, 0px)); }
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--wall-deep); }
-.panel-head b { font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; }
-.panel-head span { display: block; font-size: 13px; color: var(--muted); }
+.seg { display: flex; gap: 4px; background: #EFE9DF; border-radius: 12px; padding: 4px; }
+.seg button { font: inherit; font-weight: 700; font-size: 15px; height: 40px; padding: 0 16px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
+.seg button[aria-selected="true"] { background: #FFFFFF; color: var(--crimson); box-shadow: 0 1px 3px rgba(18,35,46,0.15); }
+.panel-sub { margin: 0; padding: 10px 18px 0; font-size: 14px; color: var(--muted); }
+#panePhone { display: flex; justify-content: center; padding: 6px 0 12px; }
 .panel-close { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--wall-deep); background: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .panel-body { overflow-y: auto; padding: 14px; overscroll-behavior: contain; }
 .kiosk-crop { position: relative; overflow: hidden; border-radius: 12px; box-shadow: 0 0 0 10px #1C2A31; margin: 10px; }
@@ -102,7 +105,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #3FC1C0; outline-offs
 .fact { background: var(--paper); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 6px; }
 .fact p { font-size: 15px; color: #2E3E47; }
 .phone-frame { width: 414px; border: 12px solid var(--ink); border-radius: 48px; background: var(--ink); overflow: hidden; }
-.phone-screen { height: min(820px, 78vh); overflow-y: auto; border-radius: 36px; background: #F4F6F5; overscroll-behavior: contain; }
+.phone-screen { height: min(760px, calc(100vh - 240px)); overflow-y: auto; border-radius: 36px; background: #F4F6F5; overscroll-behavior: contain; }
 .phone-holder { position: relative; overflow: hidden; }
 .phone-holder > .phone-frame { transform-origin: 0 0; }
 
@@ -134,9 +137,9 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
 
 <header class="nav">
   <div class="nav-in gutter">
-    <a class="brand" href="#kiosk" aria-label="H.A.L.O. home">
+    <a class="brand" href="#kiosk" aria-label="HALO home">
       <svg width="30" height="30" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17" fill="none" stroke="#3FC1C0" stroke-width="4"></circle><path d="M22 14v16M14 22h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path></svg>
-      <b>H.A.L.O.</b><span>ER waiting-room kiosk concept</span>
+      <b>HALO</b><span>ER waiting-room kiosk concept</span>
     </a>
     <nav class="links" aria-label="Sections">
       <a href="#kiosk" data-nav="kiosk">Kiosk</a>
@@ -151,14 +154,14 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
   <!-- ===== Kiosk (3D) ===== -->
   <section data-view="kiosk" class="kiosk-view" aria-label="3D kiosk">
     <div class="stage" id="stage">
-      <canvas id="towerCanvas" role="img" aria-label="3D model of the H.A.L.O. kiosk tower with a live kiosk screen on each of its six sides. Click a screen to use it."></canvas>
+      <canvas id="towerCanvas" role="img" aria-label="3D model of the HALO kiosk tower with a live kiosk screen on each of its six sides. Click a screen to use it."></canvas>
       <div class="no-gl" id="noGl" hidden>
         <p>This browser can’t show the 3D tower.</p>
         <button type="button" class="btn btn-primary" id="noGlOpen">Open the kiosk screen</button>
       </div>
       <div class="stage-copy gutter">
         <p class="eyebrow">Concept for the IU Health Bloomington Hospital emergency department</p>
-        <h1>H.A.L.O.</h1>
+        <h1>HALO</h1>
         <p class="lede">A tower in the middle of the waiting room with the same live screen on every side. Click any screen to use it.</p>
       </div>
       <div class="stage-tools gutter">
@@ -175,37 +178,26 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
         <p class="hint"><span class="dot" aria-hidden="true"></span>Click any screen to use it · drag to turn</p>
       </div>
     </div>
-    <aside class="panel" id="kioskPanel" aria-label="Kiosk screen" hidden>
+    <aside class="panel" id="kioskPanel" aria-label="Screens" hidden>
       <div class="panel-head">
-        <div><b>Kiosk screen</b><span>Live. The same screen is on all six sides.</span></div>
-        <button type="button" class="panel-close" id="panelClose" aria-label="Close kiosk screen"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="#12232E" stroke-width="2.5" stroke-linecap="round"></path></svg></button>
+        <div class="seg" role="tablist" aria-label="Which screen">
+          <button type="button" role="tab" id="tabKiosk" aria-selected="true" aria-controls="paneKiosk">Kiosk screen</button>
+          <button type="button" role="tab" id="tabPhone" aria-selected="false" aria-controls="panePhone">Phone view</button>
+        </div>
+        <button type="button" class="panel-close" id="panelClose" aria-label="Close panel"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="#12232E" stroke-width="2.5" stroke-linecap="round"></path></svg></button>
       </div>
+      <p class="panel-sub" id="panelSub">Live. The same screen is on all six sides.</p>
       <div class="panel-body" id="panelBody">
-        <div class="kiosk-crop" id="kioskCrop"><div class="dc" id="kiosk" style="width:920px;height:2110px"></div></div>
+        <div id="paneKiosk" role="tabpanel" aria-labelledby="tabKiosk">
+          <div class="kiosk-crop" id="kioskCrop"><div class="dc" id="kiosk" style="width:920px;height:2110px"></div></div>
+        </div>
+        <div id="panePhone" role="tabpanel" aria-labelledby="tabPhone" hidden>
+          <div class="phone-holder" id="phoneHolder">
+            <div class="phone-frame" id="phoneFrame"><div class="phone-screen"><div id="phone"></div></div></div>
+          </div>
+        </div>
       </div>
     </aside>
-  </section>
-
-  <!-- ===== Phone ===== -->
-  <section data-view="phone" class="page gutter" aria-labelledby="phoneTitle" hidden>
-    <div class="split">
-      <div class="copy">
-        <p class="eyebrow">Phone view</p>
-        <h2 class="title" id="phoneTitle">The same screen, in your pocket</h2>
-        <p>Patients open this page by scanning the QR code on their ticket or the tower, or by holding their phone over the tower’s tap pad. No app is needed. It shares the kiosk’s live wait list, so both always agree.</p>
-        <div class="facts">
-          <div class="fact"><h3>Your ticket stays on top</h3><p>Ticket number, triage level and wait stay pinned while you scroll.</p></div>
-          <div class="fact"><h3>Wait list on demand</h3><p>The full list opens as a dropdown, so the map and video are a short scroll away.</p></div>
-          <div class="fact"><h3>Call for help from your seat</h3><p>Press it here and the tower’s alarm goes off too. You keep your place.</p></div>
-        </div>
-        <p><a class="btn btn-primary" href="#kiosk">Try the tap pad on the kiosk</a></p>
-      </div>
-      <div class="device">
-        <div class="phone-holder" id="phoneHolder">
-          <div class="phone-frame" id="phoneFrame"><div class="phone-screen"><div id="phone"></div></div></div>
-        </div>
-      </div>
-    </div>
   </section>
 
   <!-- ===== Front desk ===== -->
@@ -246,7 +238,7 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
   <section data-view="about" class="page gutter" aria-labelledby="aboutTitle" hidden>
     <div>
       <p class="eyebrow">More info</p>
-      <h2 class="title" id="aboutTitle">Why H.A.L.O. exists</h2>
+      <h2 class="title" id="aboutTitle">Why HALO exists</h2>
     </div>
     <p>ER patients often sit for hours without knowing how long they’ll wait, why, or what to do if they start to feel worse. Our research found that the stress of waiting comes mostly from not knowing. A DePaul University study found that simply telling ER patients their wait time raised satisfaction by 18%, even when the wait wasn’t shorter.</p>
     <div class="about-grid">
@@ -260,7 +252,7 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
     <div class="split">
       <div class="copy">
         <h3>How we got here</h3>
-        <p>We compared three concepts: a QR check-in ticket, the H.A.L.O. kiosk, and a scan-from-your-seat live queue. The kiosk works for everyone, phone or not, so it became the core. From the other two we took the phone page and the nurse alert. Classmates rated the kiosk strongest but worried about cost, so the phone page lets one tower reach the whole room.</p>
+        <p>We compared three concepts: a QR check-in ticket, the HALO kiosk, and a scan-from-your-seat live queue. The kiosk works for everyone, phone or not, so it became the core. From the other two we took the phone page and the nurse alert. Classmates rated the kiosk strongest but worried about cost, so the phone page lets one tower reach the whole room.</p>
       </div>
       <div class="copy">
         <h3>The tower</h3>
@@ -292,7 +284,7 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
         <div style="display: flex; align-items: center; gap: 16px">
           <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17" fill="none" stroke="{{halo}}" stroke-width="4"></circle><path d="M22 14v16M14 22h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path></svg>
           <div style="display: flex; flex-direction: column">
-            <div style="font-size: 30px; font-weight: 700; letter-spacing: 3px">H.A.L.O.</div>
+            <div style="font-size: 30px; font-weight: 700; letter-spacing: 3px">HALO</div>
             <sc-if value="{{notHelp}}" hint-placeholder-val="{{true}}">
               <div style="font-size: 16px; color: #C9D6DC">Emergency Department · Waiting Room</div>
             </sc-if>
@@ -525,7 +517,7 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
                   <g>
                     <rect x="0" y="0" width="696" height="196" fill="#0F5F63"></rect>
                     <text x="348" y="56" text-anchor="middle" font-size="26" font-weight="700" fill="#FFFFFF">Questions? Ask any staff member.</text>
-                    <text x="348" y="86" text-anchor="middle" font-size="16" fill="#CDE6E4">Call for help is always on the H.A.L.O. screen and your phone.</text>
+                    <text x="348" y="86" text-anchor="middle" font-size="16" fill="#CDE6E4">Call for help is always on the HALO screen and your phone.</text>
                     <circle cx="258" cy="124" r="14" fill="none" stroke="#3FC1C0" stroke-width="4"></circle>
                     <path d="M258 116v16M250 124h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path>
                     <text x="282" y="130" font-size="15" font-weight="700" fill="#FFFFFF" letter-spacing="1">PATIENT EDUCATION</text>
@@ -726,7 +718,7 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
   <sc-if value="{{nfcBanner}}" hint-placeholder-val="{{false}}">
     <div role="status" style="position: sticky; top: 8px; z-index: 6; margin: 8px 10px -84px; height: 76px; box-sizing: border-box; padding: 12px 14px; border-radius: 18px; background: rgba(244,246,245,0.97); box-shadow: 0 6px 24px rgba(18,35,46,0.28); display: flex; align-items: center; gap: 12px">
       <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #12232E; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="16" fill="none" stroke="#3FC1C0" stroke-width="4"></circle><path d="M22 14v16M14 22h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path></svg></div>
-      <div style="display: flex; flex-direction: column"><div style="font-size: 14px; font-weight: 700">H.A.L.O. · now</div><div style="font-size: 14px; color: #2E3E47">Your wait page is ready. Tap to open.</div></div>
+      <div style="display: flex; flex-direction: column"><div style="font-size: 14px; font-weight: 700">HALO · now</div><div style="font-size: 14px; color: #2E3E47">Your wait page is ready. Tap to open.</div></div>
     </div>
   </sc-if>
 
@@ -735,7 +727,7 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
     <div style="display: flex; align-items: center; gap: 12px">
       <svg width="32" height="32" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17" fill="none" stroke="{{halo}}" stroke-width="4"></circle><path d="M22 14v16M14 22h16" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"></path></svg>
       <div style="display: flex; flex-direction: column">
-        <div style="font-size: 21px; font-weight: 700; letter-spacing: 2px">H.A.L.O.</div>
+        <div style="font-size: 21px; font-weight: 700; letter-spacing: 2px">HALO</div>
         <div style="font-size: 13px; color: #C9D6DC">Emergency Department</div>
       </div>
     </div>
@@ -840,13 +832,13 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
       </div>
       <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 2px">
         <div style="font-size: 17px; font-weight: 700">While you wait: staying safe</div>
-        <div style="font-size: 14px; color: #46565F">0:30 · Captions on · Plays on the H.A.L.O. kiosk</div>
+        <div style="font-size: 14px; color: #46565F">0:30 · Captions on · Plays on the HALO kiosk</div>
       </div>
     </div>
   </section>
 
   <footer style="padding: 18px 16px 10px; display: flex; justify-content: space-between; font-size: 14px; color: #46565F">
-    <span>Same info as the H.A.L.O. kiosk</span>
+    <span>Same info as the HALO kiosk</span>
     <a href="#">Español</a>
   </footer>
 </div></template>
@@ -1141,7 +1133,7 @@ class Component extends DCLogic {
       v.nLeg2 = P([[0, -40], [-nsw / 2, -20], [-nsw, 0]]);
       v.nArm1 = P([[0, -70], [-16, -60], [np >= 1 ? -40 : -nsw * 0.8, np >= 1 ? -64 : -42]]);
       v.nArm2 = P([[0, -70], [10, -56], [12, -42]]);
-      v.caption = d < 2.6 ? 'Tell staff right away if you start to feel worse.' : (d < 4.6 ? 'Press Call for help on the H.A.L.O. screen or your phone.' : 'A nurse will come to you. You keep your place in line.');
+      v.caption = d < 2.6 ? 'Tell staff right away if you start to feel worse.' : (d < 4.6 ? 'Press Call for help on the HALO screen or your phone.' : 'A nurse will come to you. You keep your place in line.');
     } else {
       v.caption = 'Thank you for your patience. We will see you as soon as we can.';
     }
@@ -1239,7 +1231,7 @@ class Component extends DCLogic {
       rows: allRows.slice(0, 5), allRows, showEvent, noEvent: !showEvent, event: s.event || '',
       hasMore: q.length > 5, moreText: '+ ' + (q.length - 5) + ' more waiting. Scan or tap below to see the full list on your phone.',
       nfcTitle: tick < (s.nfcUntil || 0) ? 'Sent! Check your phone' : 'Hold your phone here',
-      nfcSub: tick < (s.nfcUntil || 0) ? 'Your H.A.L.O. page is opening.' : 'Works like tap to pay. No app needed.',
+      nfcSub: tick < (s.nfcUntil || 0) ? 'Your HALO page is opening.' : 'Works like tap to pay. No app needed.',
       nfcStyle: 'width: 108px; height: 88px; flex-shrink: 0; padding: 0; border-radius: 14px; border: 3px solid #3FC1C0; background: #12232E; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 ' + (tick < (s.nfcUntil || 0) ? (flashOn ? 12 : 5) : 4) + 'px rgba(63,193,192,' + (tick < (s.nfcUntil || 0) ? 0.45 : 0.22) + ')',
       tapNfc: () => { this.setState({ nfcUntil: tick + 45 }); this.chirp(); },
       normalMode: mode === 'normal', helpMode: alarm, notHelp: !alarm, mapMode: mode === 'map', notMap: mode !== 'map',
@@ -1401,15 +1393,19 @@ class Component extends DCLogic {
   }
 
   // ================= views, panel, fitting =================
-  const VIEWS = ['kiosk', 'phone', 'desk', 'about'];
+  const VIEWS = ['kiosk', 'desk', 'about'];
+  let mode = 'kiosk';
+  const tabK = document.getElementById('tabKiosk'), tabP = document.getElementById('tabPhone');
+  const paneK = document.getElementById('paneKiosk'), paneP = document.getElementById('panePhone');
+  const panelSub = document.getElementById('panelSub');
   let view = 'kiosk';
   const panel = document.getElementById('kioskPanel');
   const stageEl = document.getElementById('stage');
   const crop = document.getElementById('kioskCrop');
   const pHolder = document.getElementById('phoneHolder'), pFrame = document.getElementById('phoneFrame');
   function fit() {
-    if (!panel.hidden) {
-      const w = Math.max(200, crop.parentNode.clientWidth - 48);
+    if (!panel.hidden && mode === 'kiosk') {
+      const w = Math.max(200, document.getElementById('panelBody').clientWidth - 48);
       const s = w / 760;
       crop.style.width = Math.round(760 * s) + 'px';
       crop.style.height = Math.round(1580 * s) + 'px';
@@ -1417,24 +1413,43 @@ class Component extends DCLogic {
       kHost.style.left = (-80 * s) + 'px';
       kHost.style.top = (-136 * s) + 'px';
     }
-    if (view === 'phone') {
-      const pw = pHolder.parentNode.clientWidth;
+    if (!panel.hidden && mode === 'phone') {
+      const pw = document.getElementById('panelBody').clientWidth - 28;
       const p = Math.min(1, pw / 414);
       pFrame.style.transform = p < 1 ? 'scale(' + p + ')' : '';
       pHolder.style.height = p < 1 ? Math.ceil(pFrame.offsetHeight * p) + 'px' : '';
     }
     viewer.wake();
   }
-  function openPanel() { if (panel.hidden) { panel.hidden = false; stageEl.classList.add('panel-open'); fit(); viewer.setPanel(true); schedule(); } }
-  function closePanel() { panel.hidden = true; stageEl.classList.remove('panel-open'); viewer.setPanel(false); }
+  function setMode(m) {
+    mode = m;
+    tabK.setAttribute('aria-selected', m === 'kiosk' ? 'true' : 'false');
+    tabP.setAttribute('aria-selected', m === 'phone' ? 'true' : 'false');
+    paneK.hidden = m !== 'kiosk'; paneP.hidden = m !== 'phone';
+    panelSub.textContent = m === 'kiosk' ? 'Live. The same screen is on all six sides.' : 'What patients see after scanning the code or tapping their phone. It shares the kiosk’s live wait list.';
+    markNav();
+  }
+  function openPanel(m) {
+    setMode(m || 'kiosk');
+    if (panel.hidden) { panel.hidden = false; stageEl.classList.add('panel-open'); viewer.setPanel(true); }
+    fit(); schedule();
+  }
+  function closePanel() { panel.hidden = true; stageEl.classList.remove('panel-open'); viewer.setPanel(false); markNav(); if (location.hash === '#phone') location.hash = 'kiosk'; }
+  function markNav() {
+    const cur = view === 'kiosk' && !panel.hidden && mode === 'phone' ? 'phone' : view;
+    document.querySelectorAll('.links a').forEach((a) => { if (a.getAttribute('data-nav') === cur) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  }
+  tabK.addEventListener('click', () => { if (location.hash === '#phone') location.hash = 'kiosk'; openPanel('kiosk'); });
+  tabP.addEventListener('click', () => { location.hash = 'phone'; });
   document.getElementById('panelClose').addEventListener('click', closePanel);
-  document.getElementById('openPanelBtn').addEventListener('click', openPanel);
-  document.getElementById('noGlOpen').addEventListener('click', openPanel);
+  document.getElementById('openPanelBtn').addEventListener('click', () => openPanel('kiosk'));
+  document.getElementById('noGlOpen').addEventListener('click', () => openPanel('kiosk'));
   function route() {
     const h = (location.hash || '').slice(1);
     view = VIEWS.indexOf(h) >= 0 ? h : 'kiosk';
     document.querySelectorAll('[data-view]').forEach((el) => { el.hidden = el.getAttribute('data-view') !== view; });
-    document.querySelectorAll('.links a').forEach((a) => { if (a.getAttribute('data-nav') === view) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    if (h === 'phone') openPanel('phone');
+    markNav();
     fit();
     schedule();
   }
@@ -1503,7 +1518,7 @@ class Component extends DCLogic {
       for (let k = 0; k < n; k++) { pts.push([dv.getInt16(o, true) / 100, dv.getInt16(o + 2, true) / 100]); o += 4; }
       const z1 = zs[li], z0 = Math.max(0, z1 - LH);
       if (kind === 0) band(body, pts, z0, z1);
-      else if (kind === 3) band(ring, pts, z0, z1);
+      // kind 3 (the printed ring) is replaced by a smooth lit halo below
       else if (kind === 2) {
         for (let k = 0; k + 2 < pts.length; k += 3) {
           const A = P(pts[k][0], pts[k][1], z1 + 0.004), B = P(pts[k + 1][0], pts[k + 1][1], z1 + 0.004), C = P(pts[k + 2][0], pts[k + 2][1], z1 + 0.004);
@@ -1511,6 +1526,19 @@ class Component extends DCLogic {
         }
       }
     }
+
+    // the halo: a smooth glowing torus where the printed ring sits, plus soft bloom shells
+    const HALO_R = 20.2, HALO_Y = 78.6 - H / 2;
+    function torus(dst, R, r, seg, tube) {
+      for (let i = 0; i < seg; i++) for (let j = 0; j < tube; j++) {
+        const q = (a, b) => { const u = a / seg * Math.PI * 2, v = b / tube * Math.PI * 2; const cx = Math.cos(u), cz = Math.sin(u);
+          return { p: [(R + r * Math.cos(v)) * cx, HALO_Y + r * Math.sin(v), (R + r * Math.cos(v)) * cz], n: [Math.cos(v) * cx, Math.sin(v), Math.cos(v) * cz] }; };
+        const A = q(i, j), B = q(i + 1, j), C = q(i + 1, j + 1), D = q(i, j + 1);
+        [A, B, C, A, C, D].forEach((t) => { dst.p.push(...t.p); dst.n.push(...t.n); });
+      }
+    }
+    torus(ring, HALO_R, 0.85, 120, 12);
+    const glow = [{ r: 2.0, a: 0.55 }, { r: 4.2, a: 0.26 }, { r: 8.0, a: 0.11 }].map((g) => { const d = { p: [], n: [] }; torus(d, HALO_R, g.r, 96, 14); return Object.assign(g, d); });
 
     // six screens
     const up = [0, 1, 0];
@@ -1538,20 +1566,25 @@ class Component extends DCLogic {
     function prog(vs, fs) { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); return p; }
     const meshP = prog(
       'attribute vec3 p; attribute vec3 n; uniform mat4 vp; varying vec3 vn; varying vec3 vw; void main(){ vn = n; vw = p; gl_Position = vp * vec4(p, 1.0); }',
-      'precision mediump float; varying vec3 vn; varying vec3 vw; uniform vec3 col; uniform vec3 eye; uniform vec3 emis; uniform float gloss;' +
+      'precision mediump float; varying vec3 vn; varying vec3 vw; uniform vec3 col; uniform vec3 eye; uniform vec3 emis; uniform float gloss; uniform vec3 hpos; uniform vec3 hcol;' +
       'void main(){ vec3 N = normalize(vn); if (!gl_FrontFacing) N = -N; vec3 V = normalize(eye - vw);' +
       ' vec3 L1 = normalize(vec3(0.55, 0.75, 0.55)); vec3 L2 = normalize(vec3(-0.7, 0.35, -0.45));' +
       ' float hemi = 0.5 + 0.5 * N.y; vec3 amb = mix(vec3(0.16, 0.15, 0.14), vec3(0.46, 0.47, 0.48), hemi);' +
       ' float occ = 0.82 + 0.18 * clamp((vw.y + 40.0) / 80.0, 0.0, 1.0);' +
       ' vec3 Hh = normalize(L1 + V); float sp = pow(max(dot(N, Hh), 0.0), 60.0) * gloss;' +
       ' float rim = pow(1.0 - max(dot(N, V), 0.0), 2.6) * 0.5;' +
-      ' vec3 c = col * (amb + 0.9 * max(dot(N, L1), 0.0) + 0.32 * max(dot(N, L2), 0.0)) * occ + vec3(sp) + vec3(0.45, 0.68, 0.72) * rim + emis;' +
+      ' vec3 Lh = hpos - vw; float dh = length(Lh); float hl = max(dot(N, Lh / dh), 0.0) * 420.0 / (dh * dh + 420.0);' +
+      ' vec3 c = col * (amb + 0.9 * max(dot(N, L1), 0.0) + 0.32 * max(dot(N, L2), 0.0)) * occ + col * hcol * hl * 1.6 + hcol * hl * 0.12 + vec3(sp) + vec3(0.45, 0.68, 0.72) * rim + emis;' +
       ' gl_FragColor = vec4(c, 1.0); }');
     const scrP_ = prog(
       'attribute vec3 p; attribute vec2 uv; uniform mat4 vp; varying vec2 vu; void main(){ vu = uv; gl_Position = vp * vec4(p, 1.0); }',
       'precision mediump float; varying vec2 vu; uniform sampler2D tex; uniform float hl;' +
       'void main(){ vec3 c = texture2D(tex, vu).rgb; float sheen = smoothstep(0.15, 0.0, abs(vu.x * 0.7 - vu.y * 0.5 + 0.05)) * 0.10;' +
       ' c = c * (0.94 + 0.10 * hl) + vec3(sheen); gl_FragColor = vec4(c, 1.0); }');
+    const glowP = prog(
+      'attribute vec3 p; attribute vec3 n; uniform mat4 vp; varying vec3 vn; varying vec3 vw; void main(){ vn = n; vw = p; gl_Position = vp * vec4(p, 1.0); }',
+      'precision mediump float; varying vec3 vn; varying vec3 vw; uniform vec3 eye; uniform vec3 col; uniform float amt;' +
+      'void main(){ float f = pow(abs(dot(normalize(vn), normalize(eye - vw))), 2.2); vec3 c = col * amt * f; gl_FragColor = vec4(c, max(c.r, max(c.g, c.b)) * 0.9); }');
     const shP = prog(
       'attribute vec3 p; uniform mat4 vp; varying vec2 q; void main(){ q = p.xz; gl_Position = vp * vec4(p, 1.0); }',
       'precision mediump float; varying vec2 q; void main(){ float r = length(q) / 40.0; float pool = 0.30 * exp(-r * r * 0.9); float sh = 0.55 * exp(-r * r * 3.2); gl_FragColor = vec4(vec3(0.55, 0.68, 0.70) * pool * (1.0 - sh), sh * 0.85); }');
@@ -1559,6 +1592,7 @@ class Component extends DCLogic {
     const G = {
       bodyP: buf(body.p), bodyN: buf(body.n), bodyC: body.p.length / 3,
       ringP: buf(ring.p), ringN: buf(ring.n), ringC: ring.p.length / 3,
+      glow: glow.map((g) => ({ P: buf(g.p), N: buf(g.n), C: g.p.length / 3, a: g.a })),
       scrP: buf(scrP), scrUV: buf(scrUV), shP: buf(shadowP)
     };
     const tex = gl.createTexture();
@@ -1592,7 +1626,7 @@ class Component extends DCLogic {
     const xf = (m, v) => [0, 1, 2, 3].map((i) => m[i] * v[0] + m[4 + i] * v[1] + m[8 + i] * v[2] + m[12 + i] * v[3]);
 
     // ---- camera
-    const START = { yaw: 0.52, pitch: 0.16, dist: 238 };
+    const START = { yaw: 0.52, pitch: 0.27, dist: 240 };
     let yaw = START.yaw, pitch = START.pitch, dist = START.dist, spinning = false, dirty = true, panelOpen = false;
     let VP = null, eye = [0, 0, 0], hover = -1;
     function resize() {
@@ -1629,7 +1663,7 @@ class Component extends DCLogic {
       c2.fillStyle = '#12232E'; c2.fillRect(0, 0, 760, 96);
       c2.beginPath(); c2.arc(54, 48, 17, 0, Math.PI * 2); c2.strokeStyle = kv.halo; c2.lineWidth = 4; c2.stroke();
       c2.strokeStyle = '#FFFFFF'; c2.lineCap = 'round'; c2.beginPath(); c2.moveTo(54, 40); c2.lineTo(54, 56); c2.moveTo(46, 48); c2.lineTo(62, 48); c2.stroke();
-      txt('H.A.L.O.', 88, 50, 30, '#FFFFFF', 700);
+      txt('HALO', 88, 50, 30, '#FFFFFF', 700);
       if (kv.helpMode) { rr(88, 60, 190, 24, 5, flashOn ? '#B83A0E' : '#12232E', '#FF7A55', 2); txt('HELP REQUESTED', 98, 78, 14, '#FFFFFF', 700); }
       else txt('Emergency Department · Waiting Room', 88, 78, 16, '#C9D6DC');
       txt(kv.clock, 728, 50, 30, '#FFFFFF', 700, 'right');
@@ -1773,6 +1807,10 @@ class Component extends DCLogic {
       const mp = gl.getAttribLocation(meshP, 'p'), mn = gl.getAttribLocation(meshP, 'n');
       gl.uniformMatrix4fv(gl.getUniformLocation(meshP, 'vp'), false, VP);
       gl.uniform3fv(gl.getUniformLocation(meshP, 'eye'), eye);
+      const st = kiosk.state, tk = st.tick || 0, fl = Math.floor(tk / 5) % 2 === 0;
+      const haloC = st.mode === 'help' ? (fl ? [1.0, 0.28, 0.14] : [0.5, 0.1, 0.05]) : [1.0, 0.9, 0.62];
+      gl.uniform3fv(gl.getUniformLocation(meshP, 'hpos'), [0, HALO_Y, 0]);
+      gl.uniform3fv(gl.getUniformLocation(meshP, 'hcol'), haloC);
       const drawMesh = (bp, bn, count, col, emis, gloss) => {
         gl.uniform3fv(gl.getUniformLocation(meshP, 'col'), col); gl.uniform3fv(gl.getUniformLocation(meshP, 'emis'), emis); gl.uniform1f(gl.getUniformLocation(meshP, 'gloss'), gloss);
         gl.bindBuffer(gl.ARRAY_BUFFER, bp); gl.enableVertexAttribArray(mp); gl.vertexAttribPointer(mp, 3, gl.FLOAT, false, 0, 0);
@@ -1780,9 +1818,8 @@ class Component extends DCLogic {
         gl.drawArrays(gl.TRIANGLES, 0, count);
       };
       drawMesh(G.bodyP, G.bodyN, G.bodyC, [0.25, 0.32, 0.36], [0, 0, 0], 0.4);
-      const s = kiosk.state, tick = s.tick || 0, flashOn = Math.floor(tick / 5) % 2 === 0;
-      const ringE = s.mode === 'help' ? (flashOn ? [1.0, 0.25, 0.12] : [0.45, 0.08, 0.03]) : [0.25, 0.76, 0.75];
-      drawMesh(G.ringP, G.ringN, G.ringC, [0.15, 0.15, 0.15], ringE, 0.2);
+      gl.uniform3fv(gl.getUniformLocation(meshP, 'hcol'), [0, 0, 0]);
+      drawMesh(G.ringP, G.ringN, G.ringC, [0, 0, 0], [Math.min(1, haloC[0] * 1.15), Math.min(1, haloC[1] * 1.12), Math.min(1, haloC[2] * 1.25)], 0.0);
       gl.disableVertexAttribArray(mn);
       // screens
       gl.useProgram(scrP_);
@@ -1793,6 +1830,21 @@ class Component extends DCLogic {
       gl.bindBuffer(gl.ARRAY_BUFFER, G.scrUV); gl.enableVertexAttribArray(su); gl.vertexAttribPointer(su, 2, gl.FLOAT, false, 0, 0);
       for (let i = 0; i < screens.length; i++) { gl.uniform1f(gl.getUniformLocation(scrP_, 'hl'), i === hover ? 1 : 0); gl.drawArrays(gl.TRIANGLES, i * 6, 6); }
       gl.disableVertexAttribArray(su);
+      // halo bloom
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+      gl.useProgram(glowP);
+      const gp = gl.getAttribLocation(glowP, 'p'), gn = gl.getAttribLocation(glowP, 'n');
+      gl.uniformMatrix4fv(gl.getUniformLocation(glowP, 'vp'), false, VP);
+      gl.uniform3fv(gl.getUniformLocation(glowP, 'eye'), eye);
+      gl.uniform3fv(gl.getUniformLocation(glowP, 'col'), haloC);
+      G.glow.forEach((g) => {
+        gl.uniform1f(gl.getUniformLocation(glowP, 'amt'), g.a);
+        gl.bindBuffer(gl.ARRAY_BUFFER, g.P); gl.enableVertexAttribArray(gp); gl.vertexAttribPointer(gp, 3, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, g.N); gl.enableVertexAttribArray(gn); gl.vertexAttribPointer(gn, 3, gl.FLOAT, false, 0, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, g.C);
+      });
+      gl.disableVertexAttribArray(gn);
+      gl.depthMask(true); gl.disable(gl.BLEND);
       dirty = false;
     }
     let last = 0;
@@ -1832,7 +1884,8 @@ class Component extends DCLogic {
         const g = regions[k];
         if (x >= g.x && x <= g.x + g.w && y >= g.y && y <= g.y + g.h) { if (typeof g.fn === 'function') g.fn(); break; }
       }
-      openPanel();
+      if (location.hash === '#phone') location.hash = 'kiosk';
+      openPanel('kiosk');
     }
     let drag = null;
     canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false }; canvas.setPointerCapture(e.pointerId); });
@@ -1869,8 +1922,8 @@ class Component extends DCLogic {
   let lastEvt = '';
   function renderAll() {
     const kv = kiosk.renderVals();
-    if (!panel.hidden) draw(kHost, kTpl, kv);
-    if (view === 'phone') draw(pHost, pTpl, phoneVals(kv));
+    if (!panel.hidden && mode === 'kiosk') draw(kHost, kTpl, kv);
+    if (!panel.hidden && mode === 'phone') draw(pHost, pTpl, phoneVals(kv));
     if (view === 'desk') drawMini(kv);
     if (view === 'kiosk') viewer.update(kv);
     const evt = kv.showEvent ? kv.event : '';
