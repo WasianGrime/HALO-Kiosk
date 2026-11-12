@@ -23,6 +23,9 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+html, body { margin: 0; }
+body.on-kiosk { background: #0C1318; }
+body.on-kiosk footer.site { display: none; }
 body { background: var(--wall); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.5; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--ink); }
 a { color: var(--crimson); }
@@ -1455,6 +1458,7 @@ class Component extends DCLogic {
     const h = (location.hash || '').slice(1);
     view = VIEWS.indexOf(h) >= 0 ? h : 'kiosk';
     document.querySelectorAll('[data-view]').forEach((el) => { el.hidden = el.getAttribute('data-view') !== view; });
+    document.body.classList.toggle('on-kiosk', view === 'kiosk');
     if (h === 'phone') openPanel('phone');
     markNav();
     fit();
