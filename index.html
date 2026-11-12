@@ -154,6 +154,8 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
 </header>
 
 <main>
+  <!-- hidden live copy of the kiosk, painted onto the 3D screens -->
+  <div id="kioskMirror" aria-hidden="true" inert style="position:fixed;left:-12000px;top:0;width:920px;height:2110px;pointer-events:none"></div>
   <!-- ===== Kiosk (3D) ===== -->
   <section data-view="kiosk" class="kiosk-view" aria-label="3D kiosk">
     <div class="stage" id="stage">
@@ -1347,6 +1349,7 @@ class Component extends DCLogic {
   const kiosk = new Kiosk(props);
 
   const kHost = document.getElementById('kiosk'), pHost = document.getElementById('phone');
+  const mirror = document.getElementById('kioskMirror');
   const kTpl = document.getElementById('kioskTpl'), pTpl = document.getElementById('phoneTpl');
   mountClicks(kHost); mountClicks(pHost);
 
@@ -1546,15 +1549,15 @@ class Component extends DCLogic {
 
     // six screens
     const up = [0, 1, 0];
-    const yBot = M.screenZ[0] - H / 2, yTop = M.screenZ[1] - H / 2;
+    const yBot = 13.0 - H / 2, yTop = 55.0 - H / 2; // fits inside the corner posts at the kiosk's 760 × 1580 shape
     const screens = M.screens.map(([ax, ay, bx, by]) => {
       const A = P(ax, ay, 0), B = P(bx, by, 0);
       const mx = (A[0] + B[0]) / 2, mz = (A[2] + B[2]) / 2;
       const Ln = Math.hypot(mx, mz) || 1; const n = [mx / Ln, 0, mz / Ln];
       const r = [n[2], 0, -n[0]]; // viewer's right when facing this side
       const full = Math.hypot(B[0] - A[0], B[2] - A[2]);
-      const w = full * (M.screenInset[1] - M.screenInset[0]);
-      const off = 0.6;
+      const w = Math.min(full * 0.86, (yTop - yBot) * 760 / 1580); // same shape as the real 760 × 1580 screen
+      const off = 0.8;
       const cx = mx + n[0] * off, cz = mz + n[2] * off;
       const TL = [cx - r[0] * w / 2, yTop, cz - r[2] * w / 2], TR = [cx + r[0] * w / 2, yTop, cz + r[2] * w / 2];
       const BR = [TR[0], yBot, TR[2]], BL = [TL[0], yBot, TL[2]];
@@ -1793,16 +1796,123 @@ class Component extends DCLogic {
         reg(362, 1474, 108, 88, kv.tapNfc);
       }
     }
+    // ---- exact copy: paint the real kiosk screen (a hidden live copy of it) onto the texture
+    const SVGNS = 'http://www.w3.org/2000/svg';
+    const td = document.createElement('canvas'); td.width = TW; td.height = TH;
+    const d2 = td.getContext('2d');
+    let useDom = true, pending = false, rootEl = null;
+    const imgCache = new Map(), slotImg = new Map();
+    function screenRoot() {
+      if (rootEl && rootEl.isConnected) return rootEl;
+      rootEl = Array.from(mirror.querySelectorAll('div')).find((d) => d.style.width === '760px') || null;
+      return rootEl;
+    }
+    function path(ctx, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+    function svgImage(svg, w, h, slot) {
+      const clone = svg.cloneNode(true);
+      clone.setAttribute('xmlns', SVGNS); clone.setAttribute('width', w); clone.setAttribute('height', h);
+      const xml = new XMLSerializer().serializeToString(clone);
+      let img = imgCache.get(xml);
+      if (!img) {
+        if (imgCache.size > 150) imgCache.clear();
+        img = new Image();
+        img.onload = () => { slotImg.set(slot, img); pending = true; };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+        imgCache.set(xml, img);
+      }
+      if (img.complete && img.naturalWidth) { slotImg.set(slot, img); return img; }
+      return slotImg.get(slot) || null;
+    }
+    function shadows(str, r, rad) {
+      const re = /(rgba?\([^)]*\)|#[0-9a-fA-F]+)\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+([\d.]+)px\s+(-?[\d.]+)px(\s+inset)?/g; let m;
+      while ((m = re.exec(str))) {
+        const col = m[1], blur = +m[4], sp = +m[5], inset = !!m[6];
+        if (blur > 2 || sp <= 0) continue;
+        d2.strokeStyle = col; d2.lineWidth = sp;
+        if (inset) path(d2, r.left + sp / 2, r.top + sp / 2, r.width - sp, r.height - sp, rad - sp / 2);
+        else path(d2, r.left - sp / 2, r.top - sp / 2, r.width + sp, r.height + sp, rad + sp / 2);
+        d2.stroke();
+      }
+    }
+    function drawText(node, cs) {
+      const s = node.data; if (!/\S/.test(s)) return;
+      d2.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+      d2.fillStyle = cs.color; d2.textAlign = 'left'; d2.textBaseline = 'middle';
+      try { d2.letterSpacing = cs.letterSpacing === 'normal' ? '0px' : cs.letterSpacing; } catch (e) {}
+      const range = document.createRange(); const re = /\S+/g; let m;
+      while ((m = re.exec(s))) {
+        range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
+        const q = range.getClientRects()[0]; if (!q) continue;
+        d2.fillText(m[0], q.left, (q.top + q.bottom) / 2);
+      }
+    }
+    function paintDom(root) {
+      const R = root.getBoundingClientRect();
+      const sx = TW / R.width, sy = TH / R.height;
+      d2.setTransform(1, 0, 0, 1, 0, 0); d2.globalAlpha = 1;
+      d2.fillStyle = '#F4F6F5'; d2.fillRect(0, 0, TW, TH);
+      d2.setTransform(sx, 0, 0, sy, -R.left * sx, -R.top * sy);
+      let slot = 0;
+      (function walk(el, alpha) {
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none') return;
+        const a = alpha * (parseFloat(cs.opacity) || (cs.opacity === '0' ? 0 : 1));
+        const r = el.getBoundingClientRect();
+        d2.globalAlpha = a;
+        if (el.namespaceURI === SVGNS) {
+          if (el.localName === 'svg') { const img = svgImage(el, r.width, r.height, 's' + (slot++)); if (img) d2.drawImage(img, r.left, r.top, r.width, r.height); }
+          return;
+        }
+        const rad = parseFloat(cs.borderTopLeftRadius) || 0;
+        const bg = cs.backgroundColor;
+        if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') { d2.fillStyle = bg; path(d2, r.left, r.top, r.width, r.height, rad); d2.fill(); }
+        if (cs.backgroundImage && cs.backgroundImage.indexOf('repeating-linear-gradient') >= 0) {
+          d2.save(); path(d2, r.left, r.top, r.width, r.height, rad); d2.fillStyle = '#E3E3E3'; d2.fill(); d2.clip();
+          d2.strokeStyle = '#C2C2C2'; d2.lineWidth = 2.5; for (let k = -r.height; k < r.width; k += 7) { d2.beginPath(); d2.moveTo(r.left + k, r.bottom); d2.lineTo(r.left + k + r.height, r.top); d2.stroke(); }
+          d2.restore();
+        }
+        if (cs.boxShadow && cs.boxShadow !== 'none') shadows(cs.boxShadow, r, rad);
+        const bw = parseFloat(cs.borderTopWidth) || 0;
+        if (bw > 0 && cs.borderTopStyle !== 'none') {
+          d2.save(); if (cs.borderTopStyle === 'dashed') d2.setLineDash([5, 3]);
+          d2.strokeStyle = cs.borderTopColor; d2.lineWidth = bw; path(d2, r.left + bw / 2, r.top + bw / 2, r.width - bw, r.height - bw, rad - bw / 2); d2.stroke(); d2.restore();
+        }
+        const clip = el !== root && cs.overflow === 'hidden';
+        if (clip) { d2.save(); path(d2, r.left, r.top, r.width, r.height, rad); d2.clip(); }
+        for (const n of el.childNodes) {
+          if (n.nodeType === 3) { d2.globalAlpha = a; drawText(n, cs); }
+          else if (n.nodeType === 1) walk(n, a);
+        }
+        if (clip) d2.restore();
+      })(root, 1);
+      d2.globalAlpha = 1;
+    }
+    function hitDom(u, v) {
+      const root = screenRoot(); if (!root) return false;
+      const R = root.getBoundingClientRect(), x = R.left + u * R.width, y = R.top + v * R.height;
+      let found = null;
+      root.querySelectorAll('*').forEach((el) => {
+        if (typeof el.__h !== 'function') return;
+        const r = el.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) found = el;
+      });
+      if (found) { found.__h(); return true; }
+      return false;
+    }
     let lastTex = 0, lastKey = '';
     function update(kv) {
       const s = kiosk.state;
       const key = (s.mode || '') + (s.videoOpen ? 'v' : '') + (s.openTicket || '') + (s.dest || '') + (s.nfcUntil || 0) + (s.flashUntil || 0);
       const now = performance.now();
-      if (key === lastKey && now - lastTex < 180) return;
-      lastKey = key; lastTex = now;
-      drawScreen(kv);
+      if (key === lastKey && !pending && now - lastTex < 200) return;
+      lastKey = key; lastTex = now; pending = false;
       gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tc);
+      let ok = false;
+      if (useDom) {
+        try { const root = screenRoot(); if (root) { paintDom(root); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, td); ok = true; } }
+        catch (e) { useDom = false; }
+      }
+      if (!ok) { drawScreen(kv); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tc); }
       gl.generateMipmap(gl.TEXTURE_2D);
       dirty = true;
     }
@@ -1906,6 +2016,7 @@ class Component extends DCLogic {
     }
     function clickScreen(hit) {
       const x = hit.u * 760, y = hit.v * 1580;
+      if (useDom && hitDom(hit.u, hit.v)) regions = [];
       for (let k = regions.length - 1; k >= 0; k--) {
         const g = regions[k];
         if (x >= g.x && x <= g.x + g.w && y >= g.y && y <= g.y + g.h) { if (typeof g.fn === 'function') g.fn(); break; }
@@ -1997,7 +2108,7 @@ class Component extends DCLogic {
     if (!panel.hidden && mode === 'kiosk') draw(kHost, kTpl, kv);
     if (!panel.hidden && mode === 'phone') draw(pHost, pTpl, phoneVals(kv));
     if (view === 'desk') drawMini(kv);
-    if (view === 'kiosk') viewer.update(kv);
+    if (view === 'kiosk') { draw(mirror, kTpl, kv); viewer.update(kv); }
     const evt = kv.showEvent ? kv.event : '';
     if (evt !== lastEvt) { stageEvent.innerHTML = evt ? '<span>' + evt.replace(/[<&]/g, (c) => ({ '<': '&lt;', '&': '&amp;' }[c])) + '</span>' : ''; lastEvt = evt; }
   }
