@@ -1356,7 +1356,36 @@ class Component extends DCLogic {
   const kiosk = new Kiosk(props);
 
   const kHost = document.getElementById('kiosk'), pHost = document.getElementById('phone');
-  const mirror = document.getElementById('kioskMirror');
+  const mirrorBox = document.getElementById('kioskMirror');
+
+  // ================= six screens: each works on its own =================
+  // Shared across all sides: the wait list, clock and updates, and Call for help.
+  // Each side keeps its own open ticket, map, video and tap-pad state.
+  const LOCAL = ['openTicket', 'dest', 'videoOpen', 'playing', 'vt', 'ended', 'nfcUntil'];
+  const locals = [0, 1, 2, 3, 4, 5].map(() => ({ mode: 'normal', openTicket: null, dest: 'restrooms', videoOpen: false, playing: false, vt: 0, ended: false, nfcUntil: 0 }));
+  const screenComp = locals.map((loc) => {
+    const c = Object.create(kiosk);
+    Object.defineProperty(c, 'state', { configurable: true, get() { const g = kiosk.state; const m = Object.assign({}, g, loc); m.mode = g.mode === 'help' ? 'help' : loc.mode; return m; } });
+    c.setState = function (o) {
+      if (typeof o === 'function') o = o(this.state);
+      const shared = {};
+      Object.keys(o).forEach((k) => {
+        if (k === 'mode') { if (o.mode === 'help' || (o.mode === 'normal' && kiosk.state.mode === 'help')) shared.mode = o.mode; else loc.mode = o.mode; }
+        else if (LOCAL.indexOf(k) >= 0) loc[k] = o[k];
+        else shared[k] = o[k];
+      });
+      if (Object.keys(shared).length) kiosk.setState(shared); else schedule();
+    };
+    return c;
+  });
+  setInterval(() => {
+    let changed = false;
+    locals.forEach((l) => { if (l.playing) { l.vt = Math.min(30, l.vt + 0.1); if (l.vt >= 30) { l.playing = false; l.ended = true; } changed = true; } });
+    if (changed) schedule();
+  }, 100);
+  let panelScreen = 0;
+  const mirrors = [0, 1, 2, 3, 4, 5, 6].map(() => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;left:0;top:0;width:920px;height:2110px'; mirrorBox.appendChild(d); return d; });
+  const hitMirror = mirrors[6];
   const kTpl = document.getElementById('kioskTpl'), pTpl = document.getElementById('phoneTpl');
   mountClicks(kHost); mountClicks(pHost);
 
@@ -1393,7 +1422,7 @@ class Component extends DCLogic {
     const etaS = Math.max(0, Math.ceil(90 - helpEl));
     return {
       halo: kv.halo, help: kv.help, rows, me, sinceText: kv.sinceText,
-      nfcBanner: tick < (s.nfcUntil || 0),
+      nfcBanner: locals.some((l) => tick < (l.nfcUntil || 0)),
       listOpen: phone.listOpen, listExpanded: phone.listOpen ? 'true' : 'false',
       listSummary: q.length + ' waiting' + (idx < 0 ? '' : ' · you’re ' + ord(idx + 1) + ' in line'),
       listAction: phone.listOpen ? 'Hide' : 'Show',
@@ -1440,10 +1469,11 @@ class Component extends DCLogic {
     tabK.setAttribute('aria-selected', m === 'kiosk' ? 'true' : 'false');
     tabP.setAttribute('aria-selected', m === 'phone' ? 'true' : 'false');
     paneK.hidden = m !== 'kiosk'; paneP.hidden = m !== 'phone';
-    panelSub.textContent = m === 'kiosk' ? 'Live. The same screen is on all six sides.' : 'What patients see after scanning the code or tapping their phone. It shares the kiosk’s live wait list.';
+    panelSub.textContent = m === 'kiosk' ? 'Side ' + (panelScreen + 1) + ' of 6. Each side works on its own; Call for help shows on every side.' : 'What patients see after scanning the code or tapping their phone. It shares the kiosk’s live wait list.';
     markNav();
   }
-  function openPanel(m) {
+  function openPanel(m, side) {
+    if (typeof side === 'number') panelScreen = side;
     setMode(m || 'kiosk');
     if (panel.hidden) { panel.hidden = false; stageEl.classList.add('panel-open'); viewer.setPanel(true); }
     fit(); schedule();
@@ -1456,7 +1486,7 @@ class Component extends DCLogic {
   tabK.addEventListener('click', () => { if (location.hash === '#phone') location.hash = 'kiosk'; openPanel('kiosk'); });
   tabP.addEventListener('click', () => { location.hash = 'phone'; });
   document.getElementById('panelClose').addEventListener('click', closePanel);
-  document.getElementById('openPanelBtn').addEventListener('click', () => openPanel('kiosk'));
+  document.getElementById('openPanelBtn').addEventListener('click', () => openPanel('kiosk', viewer.facing()));
   document.getElementById('noGlOpen').addEventListener('click', () => openPanel('kiosk'));
   function route() {
     const h = (location.hash || '').slice(1);
@@ -1496,7 +1526,7 @@ class Component extends DCLogic {
     const stage = document.getElementById('stage');
     let gl = null;
     try { gl = canvas.getContext('webgl', { antialias: true, alpha: true }); } catch (e) {}
-    const noop = { wake() {}, setPanel() {}, update() {} };
+    const noop = { wake() {}, setPanel() {}, update() {}, facing: () => 0 };
     if (!gl) { document.getElementById('noGl').hidden = false; return noop; }
 
     const model = JSON.parse(document.getElementById('modelData').textContent);
@@ -1633,14 +1663,19 @@ class Component extends DCLogic {
     };
     const chain = (...ms) => ms.reduce((acc, m) => mul(acc, m));
 
-    const tex = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     const aniso = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
-    if (aniso) gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const texs = [0, 1, 2, 3, 4, 5].map(() => {
+      const t = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      if (aniso) gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([244, 246, 245, 255]));
+      return t;
+    });
+    let slotOf = [0, 0, 0, 0, 0, 0];
 
     // ---- math
     const mul = (a, b) => { const r = new Array(16); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; r[i * 4 + j] = s; } return r; };
@@ -1717,16 +1752,16 @@ class Component extends DCLogic {
       return 'nfc';
     }
     function act(p) {
-      const s = kiosk.state, tick = s.tick || 0;
+      const comp = screenComp[p.face], s = comp.state, tick = s.tick || 0, side = ' on side ' + (p.face + 1);
       if (p.action === 'ticket') {
-        const q = s.queue || []; if (q.length > 1) { const t = q[1 + Math.floor(Math.random() * Math.min(4, q.length - 1))].ticket; kiosk.setState({ openTicket: t }); say('A visitor taps ticket ' + t + ' to see why its wait changed.'); }
+        const q = s.queue || []; if (q.length > 1) { const t = q[1 + Math.floor(Math.random() * Math.min(4, q.length - 1))].ticket; comp.setState({ openTicket: t }); say('A visitor' + side + ' taps ticket ' + t + ' to see why its wait changed.'); }
       } else if (p.action === 'map') {
         const [id, label] = PLACES[Math.floor(Math.random() * PLACES.length)];
-        if (s.mode === 'normal') { kiosk.setState({ mode: 'map', dest: id, playing: false }); p.closesMap = true; say('A visitor opens directions to ' + label + '.'); }
+        if (s.mode === 'normal') { comp.setState({ mode: 'map', dest: id, playing: false }); p.closesMap = true; say('A visitor' + side + ' opens directions to ' + label + '.'); }
       } else if (p.action === 'nfc') {
-        kiosk.setState({ nfcUntil: tick + 45 }); say('A visitor holds their phone to the tap pad. The page opens on their phone.');
+        comp.setState({ nfcUntil: tick + 45 }); say('A visitor' + side + ' holds their phone to the tap pad. The page opens on their phone.');
       } else if (p.action === 'help') {
-        kiosk.setState({ mode: 'help', helpTick: tick, muted: true, playing: false, videoOpen: false });
+        comp.setState({ mode: 'help', helpTick: tick, muted: true, playing: false, videoOpen: false });
         sim.lastHelp = sim.clock; p.waitingForNurse = true;
         say('A visitor feels worse and presses Call for help. The halo turns red.');
         sim.people.push({ kind: 'nurse', state: 'in', ang: p.ang + 0.42, r: FAR, phase: 0, reach: 0, speed: WALK * 1.35, col: [0.3, 0.85, 0.82], patient: p, timer: 0 });
@@ -1745,7 +1780,7 @@ class Component extends DCLogic {
             const want = (p.timer > 0.6 && p.timer < 2.4) || (p.action === 'nfc' && p.timer > 0.6 && p.timer < 3.2) ? 1 : 0;
             p.reach += (want - p.reach) * Math.min(1, dt * 6);
             if (!p.acted && p.timer > 1.3) { p.acted = true; act(p); }
-            if (!p.waitingForNurse && p.timer > p.dur) { p.state = 'out'; if (p.closesMap && kiosk.state.mode === 'map') kiosk.setState({ mode: 'normal' }); }
+            if (!p.waitingForNurse && p.timer > p.dur) { p.state = 'out'; if (p.closesMap && kiosk.state.mode !== 'help' && locals[p.face].mode === 'map') screenComp[p.face].setState({ mode: 'normal' }); }
           } else {
             p.reach += ((p.timer < 2.2 ? 1 : 0) - p.reach) * Math.min(1, dt * 5);
             if (p.timer > 3.2) {
@@ -1922,12 +1957,12 @@ class Component extends DCLogic {
     const SVGNS = 'http://www.w3.org/2000/svg';
     const td = document.createElement('canvas'); td.width = TW; td.height = TH;
     const d2 = td.getContext('2d');
-    let useDom = true, pending = false, rootEl = null;
+    let useDom = true, pending = false;
     const imgCache = new Map(), slotImg = new Map();
-    function screenRoot() {
-      if (rootEl && rootEl.isConnected) return rootEl;
-      rootEl = Array.from(mirror.querySelectorAll('div')).find((d) => d.style.width === '760px') || null;
-      return rootEl;
+    function screenRoot(m) {
+      if (m._root && m._root.isConnected) return m._root;
+      m._root = Array.from(m.querySelectorAll('div')).find((d) => d.style.width === '760px') || null;
+      return m._root;
     }
     function path(ctx, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
     function svgImage(svg, w, h, slot) {
@@ -1968,13 +2003,13 @@ class Component extends DCLogic {
         d2.fillText(m[0], q.left, (q.top + q.bottom) / 2);
       }
     }
-    function paintDom(root) {
+    function paintDom(root, tag) {
       const R = root.getBoundingClientRect();
       const sx = TW / R.width, sy = TH / R.height;
       d2.setTransform(1, 0, 0, 1, 0, 0); d2.globalAlpha = 1;
       d2.fillStyle = '#F4F6F5'; d2.fillRect(0, 0, TW, TH);
       d2.setTransform(sx, 0, 0, sy, -R.left * sx, -R.top * sy);
-      let slot = 0;
+      let slot = 0; tag = tag || 's';
       (function walk(el, alpha) {
         const cs = getComputedStyle(el);
         if (cs.display === 'none') return;
@@ -1982,7 +2017,7 @@ class Component extends DCLogic {
         const r = el.getBoundingClientRect();
         d2.globalAlpha = a;
         if (el.namespaceURI === SVGNS) {
-          if (el.localName === 'svg') { const img = svgImage(el, r.width, r.height, 's' + (slot++)); if (img) d2.drawImage(img, r.left, r.top, r.width, r.height); }
+          if (el.localName === 'svg') { const img = svgImage(el, r.width, r.height, tag + (slot++)); if (img) d2.drawImage(img, r.left, r.top, r.width, r.height); }
           return;
         }
         const rad = parseFloat(cs.borderTopLeftRadius) || 0;
@@ -2009,8 +2044,8 @@ class Component extends DCLogic {
       })(root, 1);
       d2.globalAlpha = 1;
     }
-    function hitDom(u, v) {
-      const root = screenRoot(); if (!root) return false;
+    function hitDom(m, u, v) {
+      const root = screenRoot(m); if (!root) return false;
       const R = root.getBoundingClientRect(), x = R.left + u * R.width, y = R.top + v * R.height;
       let found = null;
       root.querySelectorAll('*').forEach((el) => {
@@ -2021,22 +2056,35 @@ class Component extends DCLogic {
       if (found) { found.__h(); return true; }
       return false;
     }
-    let lastTex = 0, lastKey = '';
-    function update(kv) {
-      const s = kiosk.state;
-      const key = (s.mode || '') + (s.videoOpen ? 'v' : '') + (s.openTicket || '') + (s.dest || '') + (s.nfcUntil || 0) + (s.flashUntil || 0);
+    const slotSig = [], slotTime = [];
+    function sigOf(i) {
+      const l = locals[i], g = kiosk.state, tick = g.tick || 0;
+      return [g.mode === 'help' ? 'H' : l.mode, l.openTicket, l.mode === 'map' ? l.dest : '', l.videoOpen ? 'v' + (l.playing ? 'p' : '') + Math.floor(l.vt) : '', tick < (l.nfcUntil || 0) ? 'n' : ''].join('|');
+    }
+    function facesCamera(i) { const n = screens[i].n; return n[0] * Math.sin(cam.yaw) + n[2] * Math.cos(cam.yaw) > -0.3; }
+    function update() {
       const now = performance.now();
-      if (key === lastKey && !pending && now - lastTex < 200) return;
-      lastKey = key; lastTex = now; pending = false;
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      let ok = false;
-      if (useDom) {
-        try { const root = screenRoot(); if (root) { paintDom(root); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, td); ok = true; } }
-        catch (e) { useDom = false; }
-      }
-      if (!ok) { drawScreen(kv); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tc); }
-      gl.generateMipmap(gl.TEXTURE_2D);
-      dirty = true;
+      const groups = new Map();
+      for (let i = 0; i < 6; i++) { const k = sigOf(i); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); }
+      const next = []; let slot = 0, did = false;
+      groups.forEach((idx, key) => {
+        const s = slot++; idx.forEach((i) => { next[i] = s; });
+        if (!idx.some(facesCamera) && slotSig[s] === key) return;
+        if (slotSig[s] === key && !pending && now - (slotTime[s] || 0) < 220) return;
+        slotSig[s] = key; slotTime[s] = now; did = true;
+        const vals = screenComp[idx[0]].renderVals();
+        gl.bindTexture(gl.TEXTURE_2D, texs[s]);
+        let ok = false;
+        if (useDom) {
+          try { draw(mirrors[s], kTpl, vals); const root = screenRoot(mirrors[s]); if (root) { paintDom(root, 'm' + s + '_'); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, td); ok = true; } }
+          catch (e) { useDom = false; }
+        }
+        if (!ok) { drawScreen(vals); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tc); }
+        gl.generateMipmap(gl.TEXTURE_2D);
+      });
+      for (let s = slot; s < 6; s++) slotSig[s] = undefined;
+      slotOf = next; pending = false;
+      if (did) dirty = true;
     }
 
     // ---- render
@@ -2074,10 +2122,10 @@ class Component extends DCLogic {
       gl.useProgram(scrP_);
       const sp = gl.getAttribLocation(scrP_, 'p'), su = gl.getAttribLocation(scrP_, 'uv');
       gl.uniformMatrix4fv(gl.getUniformLocation(scrP_, 'vp'), false, VP);
-      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(gl.getUniformLocation(scrP_, 'tex'), 0);
+      gl.activeTexture(gl.TEXTURE0); gl.uniform1i(gl.getUniformLocation(scrP_, 'tex'), 0);
       gl.bindBuffer(gl.ARRAY_BUFFER, G.scrP); gl.enableVertexAttribArray(sp); gl.vertexAttribPointer(sp, 3, gl.FLOAT, false, 0, 0);
       gl.bindBuffer(gl.ARRAY_BUFFER, G.scrUV); gl.enableVertexAttribArray(su); gl.vertexAttribPointer(su, 2, gl.FLOAT, false, 0, 0);
-      for (let i = 0; i < screens.length; i++) { gl.uniform1f(gl.getUniformLocation(scrP_, 'hl'), i === hover ? 1 : 0); gl.drawArrays(gl.TRIANGLES, i * 6, 6); }
+      for (let i = 0; i < screens.length; i++) { gl.bindTexture(gl.TEXTURE_2D, texs[slotOf[i] || 0]); gl.uniform1f(gl.getUniformLocation(scrP_, 'hl'), i === hover ? 1 : 0); gl.drawArrays(gl.TRIANGLES, i * 6, 6); }
       gl.disableVertexAttribArray(su);
       // simulated visitors
       if (sim.on && sim.people.length) {
@@ -2184,13 +2232,13 @@ class Component extends DCLogic {
     }
     function clickScreen(hit) {
       const x = hit.u * 760, y = hit.v * 1580;
-      if (useDom && hitDom(hit.u, hit.v)) regions = [];
+      if (useDom) { draw(hitMirror, kTpl, screenComp[hit.i].renderVals()); if (hitDom(hitMirror, hit.u, hit.v)) regions = []; }
       for (let k = regions.length - 1; k >= 0; k--) {
         const g = regions[k];
         if (x >= g.x && x <= g.x + g.w && y >= g.y && y <= g.y + g.h) { if (typeof g.fn === 'function') g.fn(); break; }
       }
       if (location.hash === '#phone') location.hash = 'kiosk';
-      openPanel('kiosk');
+      openPanel('kiosk', hit.i);
     }
     let drag = null;
     const pts = new Map();
@@ -2266,7 +2314,7 @@ class Component extends DCLogic {
     });
     document.getElementById('simBtn').addEventListener('click', () => setSim(!sim.on));
     if (reduce) setSpin(false);
-    return { wake() { dirty = true; }, setPanel(on) { panelOpen = on; dirty = true; }, update };
+    return { wake() { dirty = true; }, setPanel(on) { panelOpen = on; dirty = true; }, update, facing: () => facingScreen() };
   })();
 
   // ================= render loop =================
@@ -2274,10 +2322,10 @@ class Component extends DCLogic {
   let lastEvt = '';
   function renderAll() {
     const kv = kiosk.renderVals();
-    if (!panel.hidden && mode === 'kiosk') draw(kHost, kTpl, kv);
+    if (!panel.hidden && mode === 'kiosk') draw(kHost, kTpl, screenComp[panelScreen].renderVals());
     if (!panel.hidden && mode === 'phone') draw(pHost, pTpl, phoneVals(kv));
     if (view === 'desk') drawMini(kv);
-    if (view === 'kiosk') { draw(mirror, kTpl, kv); viewer.update(kv); }
+    if (view === 'kiosk') viewer.update();
     const evt = kv.showEvent ? kv.event : '';
     if (evt !== lastEvt) { stageEvent.innerHTML = evt ? '<span>' + evt.replace(/[<&]/g, (c) => ({ '<': '&lt;', '&': '&amp;' }[c])) + '</span>' : ''; lastEvt = evt; }
   }
