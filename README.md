@@ -15,6 +15,8 @@ An interactive prototype of **HALO**, a live wait screen for the emergency room 
 - **Front desk:** the staff check-in panel with triage levels and the current line.
 - **More info:** why HALO exists, the features, how we got here, the concept PDFs and the print file.
 
+- **Simulate visitors:** press it to watch translucent "shadow" people walk up to the tower, use the screens and walk away. Their taps really work the kiosk: checking a ticket, opening directions, tapping a phone on the pad. Now and then one presses Call for help, the halo turns red, and a nurse walks over to clear the alert. A caption describes each step, and the simulation is silent.
+
 The 3D viewer is built into the page (plain WebGL), so the whole site is one file that works offline.
 
 ![Call for help pressed on the 3D screen](screenshots/3d-alarm.png)

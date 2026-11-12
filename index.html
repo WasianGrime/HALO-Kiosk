@@ -69,6 +69,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid #3FC1C0; outline-offs
 .hint .dot { width: 10px; height: 10px; border-radius: 5px; background: #3FC1C0; box-shadow: 0 0 0 4px rgba(63,193,192,0.25); flex-shrink: 0; }
 .event { margin: 0; min-height: 24px; font-size: 15px; font-weight: 700; color: #5A4300; }
 .event:empty { display: none; }
+.sim-note { margin: 0; min-height: 22px; font-size: 15px; color: #DCE6E9; text-align: center; max-width: 640px; }
+.sim-note:empty { display: none; }
 .event span { background: #FFF4C2; border-radius: 999px; padding: 4px 12px; }
 .tools { display: flex; flex-wrap: wrap; gap: 8px; }
 .tools button, .btn { font: inherit; font-weight: 700; font-size: 15px; height: 42px; min-width: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--wall-deep); background: var(--paper); color: var(--ink); cursor: pointer; }
@@ -173,8 +175,10 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
         <p class="lede">A tower in the middle of the waiting room with the same live screen on every side. Click any screen to use it.</p>
       </div>
       <div class="stage-tools gutter">
+        <p class="sim-note" id="simNote" aria-live="polite"></p>
         <p class="event" id="stageEvent" aria-live="polite"></p>
         <div class="tools" role="toolbar" aria-label="3D view controls">
+          <button type="button" id="simBtn" aria-pressed="false">Simulate visitors</button>
           <button type="button" id="spinBtn" aria-pressed="false">Start rotating</button>
           <span class="sep" aria-hidden="true"></span>
           <button type="button" id="zoomOut" aria-label="Zoom out">&minus;</button>
@@ -1606,6 +1610,29 @@ class Component extends DCLogic {
       glow: glow.map((g) => ({ P: buf(g.p), N: buf(g.n), C: g.p.length / 3, a: g.a })),
       scrP: buf(scrP), scrUV: buf(scrUV), shP: buf(shadowP)
     };
+    // ---- simulated visitors: translucent "shadow" people built from simple shapes
+    const FLOOR = -H / 2;
+    function cylinder(seg) { const p = [], n = []; for (let i = 0; i < seg; i++) { const a0 = i / seg * Math.PI * 2, a1 = (i + 1) / seg * Math.PI * 2; const c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1); p.push(c0, 0, s0, c1, 0, s1, c1, 1, s1, c0, 0, s0, c1, 1, s1, c0, 1, s0); n.push(c0, 0, s0, c1, 0, s1, c1, 0, s1, c0, 0, s0, c1, 0, s1, c0, 0, s0); } return { p, n }; }
+    function sphere(lat, lon) { const p = [], n = []; const v = (i, j) => { const t = i / lat * Math.PI, f = j / lon * Math.PI * 2; return [Math.sin(t) * Math.cos(f), Math.cos(t), Math.sin(t) * Math.sin(f)]; };
+      for (let i = 0; i < lat; i++) for (let j = 0; j < lon; j++) { const A = v(i, j), B = v(i + 1, j), C = v(i + 1, j + 1), D = v(i, j + 1); [A, B, C, A, C, D].forEach((q) => { p.push(...q); n.push(...q); }); } return { p, n }; }
+    const cyl = cylinder(14), sph = sphere(10, 14);
+    const FG = { cylP: buf(cyl.p), cylN: buf(cyl.n), cylC: cyl.p.length / 3, sphP: buf(sph.p), sphN: buf(sph.n), sphC: sph.p.length / 3, disc: buf([-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, -1, 1, 0, 1, -1, 0, 1]) };
+    const figP = prog(
+      'attribute vec3 p; attribute vec3 n; uniform mat4 vp; uniform mat4 m; varying vec3 vn; varying vec3 vw; void main(){ vec4 w = m * vec4(p, 1.0); vw = w.xyz; vn = mat3(m) * n; gl_Position = vp * w; }',
+      'precision mediump float; varying vec3 vn; varying vec3 vw; uniform vec3 col; uniform float alpha; uniform vec3 eye;' +
+      'void main(){ vec3 N = normalize(vn); vec3 V = normalize(eye - vw); float l = 0.55 + 0.45 * max(dot(N, normalize(vec3(0.5, 0.8, 0.5))), 0.0); float rim = pow(1.0 - abs(dot(N, V)), 2.0);' +
+      ' vec3 c = col * l + vec3(0.35, 0.55, 0.6) * rim * 0.6; float a = alpha * (0.75 + 0.25 * rim); gl_FragColor = vec4(c * a, a); }');
+    const discP = prog(
+      'attribute vec3 p; uniform mat4 vp; uniform mat4 m; varying vec2 q; void main(){ q = p.xz; gl_Position = vp * m * vec4(p, 1.0); }',
+      'precision mediump float; varying vec2 q; uniform float alpha; void main(){ float a = alpha * exp(-dot(q, q) * 2.6); gl_FragColor = vec4(0.0, 0.02, 0.03, 1.0) * a; }');
+    const M4 = {
+      T: (x, y, z) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1],
+      S: (x, y, z) => [x, 0, 0, 0, 0, y, 0, 0, 0, 0, z, 0, 0, 0, 0, 1],
+      RX: (t) => { const c = Math.cos(t), s = Math.sin(t); return [1, 0, 0, 0, 0, c, s, 0, 0, -s, c, 0, 0, 0, 0, 1]; },
+      RY: (t) => { const c = Math.cos(t), s = Math.sin(t); return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1]; }
+    };
+    const chain = (...ms) => ms.reduce((acc, m) => mul(acc, m));
+
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
@@ -1664,6 +1691,97 @@ class Component extends DCLogic {
       VP = mul(T, mul(persp(fov, asp, 10, 900), lookAt(eye, [0, cam.ty, 0], up)));
     }
     const near = (target, current) => target + Math.PI * 2 * Math.round((current - target) / (Math.PI * 2));
+
+    // ---- simulation of people walking up and using the tower
+    const sim = { on: false, people: [], clock: 0, lastHelp: -60, note: '', noteUntil: 0 };
+    const simNote = document.getElementById('simNote');
+    const STAND = 42, FAR = 150, WALK = 26;
+    const faceAng = (i) => Math.atan2(screens[i].n[2], screens[i].n[0]);
+    function say(text) { sim.note = text; sim.noteUntil = sim.clock + 5; simNote.textContent = text; }
+    const PLACES = [['restrooms', 'the restrooms'], ['cafeteria', 'the cafeteria'], ['pharmacy', 'the pharmacy'], ['exit', 'the exit'], ['chapel', 'the chapel'], ['vending', 'the vending machines']];
+    function freeFace() {
+      const used = new Set(sim.people.filter((p) => p.kind === 'visitor' && p.state !== 'wait').map((p) => p.face));
+      const opts = [0, 1, 2, 3, 4, 5].filter((i) => !used.has(i));
+      return opts.length ? opts[Math.floor(Math.random() * opts.length)] : -1;
+    }
+    function spawnVisitor(p) {
+      const f = freeFace(); if (f < 0) { p.state = 'wait'; p.timer = 2; return; }
+      Object.assign(p, { kind: 'visitor', state: 'in', face: f, ang: faceAng(f) + (Math.random() - 0.5) * 0.14, r: FAR, phase: Math.random() * 6, reach: 0, timer: 0, acted: false, speed: WALK * (0.85 + Math.random() * 0.3), col: [0.6 + Math.random() * 0.08, 0.7, 0.76], action: null });
+    }
+    function pickAction() {
+      const canHelp = sim.clock - sim.lastHelp > 50 && kiosk.state.mode !== 'help' && !sim.people.some((p) => p.kind === 'nurse');
+      const r = Math.random();
+      if (canHelp && r < 0.14) return 'help';
+      if (r < 0.42) return 'ticket';
+      if (r < 0.7) return 'map';
+      return 'nfc';
+    }
+    function act(p) {
+      const s = kiosk.state, tick = s.tick || 0;
+      if (p.action === 'ticket') {
+        const q = s.queue || []; if (q.length > 1) { const t = q[1 + Math.floor(Math.random() * Math.min(4, q.length - 1))].ticket; kiosk.setState({ openTicket: t }); say('A visitor taps ticket ' + t + ' to see why its wait changed.'); }
+      } else if (p.action === 'map') {
+        const [id, label] = PLACES[Math.floor(Math.random() * PLACES.length)];
+        if (s.mode === 'normal') { kiosk.setState({ mode: 'map', dest: id, playing: false }); p.closesMap = true; say('A visitor opens directions to ' + label + '.'); }
+      } else if (p.action === 'nfc') {
+        kiosk.setState({ nfcUntil: tick + 45 }); say('A visitor holds their phone to the tap pad. The page opens on their phone.');
+      } else if (p.action === 'help') {
+        kiosk.setState({ mode: 'help', helpTick: tick, muted: true, playing: false, videoOpen: false });
+        sim.lastHelp = sim.clock; p.waitingForNurse = true;
+        say('A visitor feels worse and presses Call for help. The halo turns red.');
+        sim.people.push({ kind: 'nurse', state: 'in', ang: p.ang + 0.42, r: FAR, phase: 0, reach: 0, speed: WALK * 1.35, col: [0.3, 0.85, 0.82], patient: p, timer: 0 });
+      }
+    }
+    function stepSim(dt) {
+      sim.clock += dt;
+      sim.people.forEach((p) => {
+        if (p.state === 'in') {
+          const goalR = p.kind === 'nurse' ? STAND + 10 : STAND;
+          p.r = Math.max(goalR, p.r - p.speed * dt); p.phase += dt * 7.5;
+          if (p.r <= goalR + 0.01) { p.state = 'use'; p.timer = 0; if (p.kind === 'visitor') { p.action = pickAction(); p.dur = p.action === 'help' ? 99 : 5 + Math.random() * 3; } }
+        } else if (p.state === 'use') {
+          p.timer += dt;
+          if (p.kind === 'visitor') {
+            const want = (p.timer > 0.6 && p.timer < 2.4) || (p.action === 'nfc' && p.timer > 0.6 && p.timer < 3.2) ? 1 : 0;
+            p.reach += (want - p.reach) * Math.min(1, dt * 6);
+            if (!p.acted && p.timer > 1.3) { p.acted = true; act(p); }
+            if (!p.waitingForNurse && p.timer > p.dur) { p.state = 'out'; if (p.closesMap && kiosk.state.mode === 'map') kiosk.setState({ mode: 'normal' }); }
+          } else {
+            p.reach += ((p.timer < 2.2 ? 1 : 0) - p.reach) * Math.min(1, dt * 5);
+            if (p.timer > 3.2) {
+              if (kiosk.state.mode === 'help') kiosk.setState({ mode: 'normal' });
+              say('A nurse arrives and checks on them. The alert is cleared, and they keep their place in line.');
+              p.state = 'out'; if (p.patient) { p.patient.waitingForNurse = false; p.patient.state = 'out'; }
+            }
+          }
+        } else if (p.state === 'out') {
+          p.reach += (0 - p.reach) * Math.min(1, dt * 6);
+          p.r += p.speed * dt; p.phase += dt * 7.5;
+          if (p.r >= FAR) { p.state = 'wait'; p.timer = 1.5 + Math.random() * 4; }
+        } else if (p.state === 'wait') {
+          p.timer -= dt; if (p.timer <= 0 && p.kind === 'visitor') spawnVisitor(p);
+        }
+      });
+      sim.people = sim.people.filter((p) => !(p.kind === 'nurse' && p.state === 'wait'));
+      if (simNote.textContent && sim.clock > sim.noteUntil) simNote.textContent = '';
+    }
+    function setSim(on) {
+      sim.on = on;
+      const b = document.getElementById('simBtn');
+      b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? 'Stop simulation' : 'Simulate visitors';
+      if (on) {
+        sim.people = [];
+        for (let i = 0; i < 4; i++) { const p = { kind: 'visitor', state: 'wait', timer: i * 2.2 + 0.2 }; sim.people.push(p); }
+        if (closeUp) leaveClose();
+        goal.pitch = 0.46; goal.dist = fitDist * 1.32; userZoomed = true;
+        say('Simulation on. Visitors walk up, use the screens, and walk away.');
+      } else {
+        sim.people = []; simNote.textContent = '';
+        if (kiosk.state.mode === 'help' && kiosk.state.muted) kiosk.setState({ mode: 'normal' });
+        goal.pitch = START.pitch; goal.dist = fitDist; userZoomed = false;
+      }
+      dirty = true;
+    }
 
     // ---- live screen texture (drawn from the kiosk's own state)
     const TW = 1024, TH = 2048;
@@ -1961,6 +2079,51 @@ class Component extends DCLogic {
       gl.bindBuffer(gl.ARRAY_BUFFER, G.scrUV); gl.enableVertexAttribArray(su); gl.vertexAttribPointer(su, 2, gl.FLOAT, false, 0, 0);
       for (let i = 0; i < screens.length; i++) { gl.uniform1f(gl.getUniformLocation(scrP_, 'hl'), i === hover ? 1 : 0); gl.drawArrays(gl.TRIANGLES, i * 6, 6); }
       gl.disableVertexAttribArray(su);
+      // simulated visitors
+      if (sim.on && sim.people.length) {
+        gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        const vis = sim.people.filter((p) => p.state !== 'wait' && p.r !== undefined);
+        const fade = (p) => Math.max(0, Math.min(1, (FAR - p.r) / 40));
+        gl.depthMask(false); gl.useProgram(discP);
+        const dp = gl.getAttribLocation(discP, 'p');
+        gl.uniformMatrix4fv(gl.getUniformLocation(discP, 'vp'), false, VP);
+        gl.bindBuffer(gl.ARRAY_BUFFER, FG.disc); gl.enableVertexAttribArray(dp); gl.vertexAttribPointer(dp, 3, gl.FLOAT, false, 0, 0);
+        vis.forEach((p) => { const x = Math.cos(p.ang) * p.r, z = Math.sin(p.ang) * p.r; gl.uniformMatrix4fv(gl.getUniformLocation(discP, 'm'), false, chain(M4.T(x, FLOOR + 0.05, z), M4.S(9, 1, 9))); gl.uniform1f(gl.getUniformLocation(discP, 'alpha'), 0.55 * fade(p)); gl.drawArrays(gl.TRIANGLES, 0, 6); });
+        gl.depthMask(true); gl.useProgram(figP);
+        const fp = gl.getAttribLocation(figP, 'p'), fn = gl.getAttribLocation(figP, 'n');
+        gl.uniformMatrix4fv(gl.getUniformLocation(figP, 'vp'), false, VP);
+        gl.uniform3fv(gl.getUniformLocation(figP, 'eye'), eye);
+        const part = (m, shape) => {
+          gl.uniformMatrix4fv(gl.getUniformLocation(figP, 'm'), false, m);
+          gl.bindBuffer(gl.ARRAY_BUFFER, shape === 'c' ? FG.cylP : FG.sphP); gl.enableVertexAttribArray(fp); gl.vertexAttribPointer(fp, 3, gl.FLOAT, false, 0, 0);
+          gl.bindBuffer(gl.ARRAY_BUFFER, shape === 'c' ? FG.cylN : FG.sphN); gl.enableVertexAttribArray(fn); gl.vertexAttribPointer(fn, 3, gl.FLOAT, false, 0, 0);
+          gl.drawArrays(gl.TRIANGLES, 0, shape === 'c' ? FG.cylC : FG.sphC);
+        };
+        vis.forEach((p) => {
+          const x = Math.cos(p.ang) * p.r, z = Math.sin(p.ang) * p.r;
+          const out = p.state === 'out';
+          const yaw = Math.atan2(out ? Math.cos(p.ang) : -Math.cos(p.ang), out ? Math.sin(p.ang) : -Math.sin(p.ang));
+          const walking = p.state === 'in' || p.state === 'out';
+          const sw = walking ? Math.sin(p.phase) * 0.55 : 0;
+          gl.uniform3fv(gl.getUniformLocation(figP, 'col'), p.col);
+          gl.uniform1f(gl.getUniformLocation(figP, 'alpha'), (p.kind === 'nurse' ? 0.8 : 0.62) * fade(p));
+          const B = chain(M4.T(x, FLOOR + (walking ? Math.abs(Math.cos(p.phase)) * 0.7 : 0), z), M4.RY(yaw), M4.S(0.84, 0.84, 0.84));
+          part(chain(B, M4.T(0, 31, 0), M4.S(4.5, 19, 2.9)), 'c');
+          part(chain(B, M4.T(0, 31, 0), M4.S(4.4, 2.8, 2.8)), 's');
+          part(chain(B, M4.T(0, 49.5, 0), M4.S(5.6, 2.6, 3.0)), 's');
+          part(chain(B, M4.T(0, 57, 0), M4.S(3.5, 4.2, 3.7)), 's');
+          [-1, 1].forEach((s) => {
+            const la = s * sw;
+            part(chain(B, M4.T(s * 2.3, 31, 0), M4.RX(la), M4.T(0, -30, 0), M4.S(1.8, 30, 1.8)), 'c');
+            part(chain(B, M4.T(s * 2.3, 31, 0), M4.RX(la), M4.T(0, -29.6, 1.0), M4.S(1.9, 1.2, 3.0)), 's');
+            const aa = s === 1 ? (-s * sw * 0.8) * (1 - p.reach) - 1.25 * p.reach : -s * sw * 0.8;
+            part(chain(B, M4.T(s * 5.6, 49, 0), M4.RX(aa), M4.T(0, -22, 0), M4.S(1.3, 22, 1.3)), 'c');
+            part(chain(B, M4.T(s * 5.6, 49, 0), M4.RX(aa), M4.T(0, -22.5, 0), M4.S(1.6, 1.8, 1.6)), 's');
+          });
+        });
+        gl.disableVertexAttribArray(fn);
+        gl.disable(gl.BLEND);
+      }
       // halo bloom
       gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
       gl.useProgram(glowP);
@@ -1993,6 +2156,7 @@ class Component extends DCLogic {
       }
       if (moving) dirty = true;
       if (kiosk.state.mode === 'help') dirty = true;
+      if (sim.on) { stepSim(dt); dirty = true; }
       if (dirty && view === 'kiosk') render();
       requestAnimationFrame(loop);
     }
@@ -2100,6 +2264,7 @@ class Component extends DCLogic {
       setSpin(false); setClose(false); vel = 0; userZoomed = false;
       goal.yaw = near(START.yaw, cam.yaw); goal.pitch = START.pitch; goal.dist = fitDist; goal.ty = 4; goal.sy = BASE_SY;
     });
+    document.getElementById('simBtn').addEventListener('click', () => setSim(!sim.on));
     if (reduce) setSpin(false);
     return { wake() { dirty = true; }, setPanel(on) { panelOpen = on; dirty = true; }, update };
   })();
