@@ -198,7 +198,7 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
           <span class="sep" aria-hidden="true"></span>
           <button type="button" id="openPanelBtn" class="primary">Open kiosk screen</button>
         </div>
-        <p class="hint"><span class="dot" aria-hidden="true"></span>Click a screen to use it · double-click to look closer · drag to turn</p>
+        <p class="hint"><span class="dot" aria-hidden="true"></span>Click a screen to zoom in · click again to use it · drag to turn</p>
       </div>
     </div>
     <aside class="panel" id="kioskPanel" aria-label="Screens" hidden>
@@ -325,7 +325,7 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
       <!-- Wait list -->
       <section style="padding: 24px 32px 16px 32px; display: flex; flex-direction: column; gap: 14px">
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 40px">
-          <h2 style="margin: 0; font-size: 30px">Wait list</h2>
+          <h2 style="margin: 0; font-size: 30px; white-space: nowrap; flex-shrink: 0">Wait list</h2>
           <sc-if value="{{showEvent}}" hint-placeholder-val="{{false}}">
             <div aria-live="polite" style="font-size: 16px; font-weight: 700; color: #5A4300; background: #FFF4C2; border-radius: 999px; padding: 8px 16px">Updated: {{event}}</div>
           </sc-if>
@@ -341,13 +341,13 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
           <span style="font-weight: 700; padding: 2px 8px; border-radius: 5px; background: #D6E4F5; color: #1E4677">5 Non-urgent</span>
           <span style="color: #46565F">Lower number is seen first. Shows how urgent, never why.</span>
         </div>
-        <div style="display: grid; grid-template-columns: 120px 130px minmax(0, 1fr) 150px; padding: 0 20px; font-size: 15px; font-weight: 700; color: #46565F; letter-spacing: 1px">
+        <div style="display: grid; grid-template-columns: 110px 176px minmax(0, 1fr) 124px; padding: 0 20px; font-size: 15px; font-weight: 700; color: #46565F; letter-spacing: 1px">
           <div>TICKET</div><div>LEVEL</div><div>STATUS</div><div style="text-align: right">EST. WAIT</div>
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px">
           <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
             <button onClick="{{r.onTap}}" style="{{r.rowStyle}}">
-              <div style="display: grid; grid-template-columns: 120px 130px minmax(0, 1fr) 150px; align-items: center; width: 100%">
+              <div style="display: grid; grid-template-columns: 110px 176px minmax(0, 1fr) 124px; align-items: center; width: 100%">
                 <div style="font-size: 28px; font-weight: 700">{{r.ticket}}</div>
                 <div><span style="{{r.lvlStyle}}">{{r.lvlText}}</span></div>
                 <div style="font-size: 19px; color: #2E3E47">{{r.status}}</div>
@@ -595,8 +595,11 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
               <div style="background: rgba(0,0,0,0.22); border-radius: 10px; padding: 12px 14px"><div style="font-size: 14px; opacity: 0.85">Your place in line</div><div style="font-size: 24px; font-weight: 700">Kept</div></div>
             </div>
             <div style="display: flex; gap: 12px">
-              <button onClick="{{toggleMute}}" style="height: 56px; padding: 0 22px; border: 2px solid #FFFFFF; border-radius: 12px; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 19px; font-weight: 700; cursor: pointer">{{muteLabel}}</button>
-              <button onClick="{{cancelHelp}}" style="height: 56px; padding: 0 22px; border: 0; border-radius: 12px; background: #FFFFFF; color: #8E2A08; font-family: inherit; font-size: 19px; font-weight: 700; cursor: pointer; margin-left: auto">I'm OK, cancel alert</button>
+              <button onClick="{{toggleMute}}" style="align-self: flex-start; height: 60px; padding: 0 20px; white-space: nowrap; border: 2px solid #FFFFFF; border-radius: 12px; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 19px; font-weight: 700; cursor: pointer">{{muteLabel}}</button>
+              <div style="margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px">
+                <button onClick="{{cancelHelp}}" style="height: 60px; padding: 0 22px; border: 3px solid #FFFFFF; border-radius: 12px; background: #FFFFFF; color: #8E2A08; font-family: inherit; font-size: 20px; font-weight: 700; white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 0 rgba(0,0,0,0.25)"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="#8E2A08" stroke-width="3" stroke-linecap="round"></path></svg>I’m OK now, cancel help</button>
+                <div style="font-size: 15px">Only if you no longer need a nurse.</div>
+              </div>
             </div>
           </div>
           <!-- map moved down -->
@@ -702,9 +705,12 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
       <!-- Footer: take it with you (scan or tap) -->
       <sc-if value="{{notMap}}" hint-placeholder-val="{{true}}">
       <footer style="margin-top: auto; padding: 14px 32px 18px; background: #E6ECEA; display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex; justify-content: space-between; align-items: baseline">
-          <div style="font-size: 20px; font-weight: 700">Take this screen with you</div>
-          <div style="font-size: 14px; color: #46565F">Español · 中文 · Tiếng Việt</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <div style="font-size: 20px; font-weight: 700">Take this screen with you</div>
+            <div style="font-size: 14px; color: #46565F">Español · 中文 · Tiếng Việt</div>
+          </div>
+          <button onClick="{{getPhone}}" style="height: 52px; padding: 0 20px; border: 0; border-radius: 12px; background: #0F5F63; color: #FFFFFF; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 10px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"></rect><path d="M11 18h2"></path></svg>Get this on your phone</button>
         </div>
         <div style="display: flex; align-items: center; gap: 16px">
           <div style="display: flex; align-items: center; gap: 12px; flex: 1">
@@ -783,6 +789,9 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
         <span style="font-size: 15px; line-height: 1.3">{{phoneHelpSub}}</span>
       </span>
     </button>
+    <sc-if value="{{phoneAlarm}}" hint-placeholder-val="{{false}}">
+      <button onClick="{{cancelHelp}}" style="margin-top: 8px; width: 100%; height: 48px; border: 2px solid #8E2A08; border-radius: 12px; background: #FFFFFF; color: #8E2A08; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">I’m OK now, cancel help</button>
+    </sc-if>
   </section>
 
   <!-- Wait list: a dropdown -->
@@ -1191,7 +1200,7 @@ class Component extends DCLogic {
       if (open) bg = 'background: #DCEFED; box-shadow: inset 0 0 0 2px #0F5F63;';
       return {
         ticket: r.ticket, status, reason, wait: this.fmtWait(r.mins), open,
-        lvlText: 'Level ' + (r.level || 4), lvlName: L[r.level || 4].name,
+        lvlText: (r.level || 4) + ' · ' + L[r.level || 4].name, lvlName: L[r.level || 4].name,
         lvlStyle: 'display: inline-block; white-space: nowrap; font-size: 15px; font-weight: 700; padding: 4px 10px; border-radius: 6px; background: ' + L[r.level || 4].bg + '; color: ' + L[r.level || 4].fg,
         rowStyle: base + bg,
         onTap: () => this.setState({ openTicket: open ? null : r.ticket })
@@ -1209,8 +1218,8 @@ class Component extends DCLogic {
     const pillStyle = 'align-self: flex-start; margin-top: 2px; font-size: 14px; font-weight: 700; letter-spacing: 2px; padding: 2px 10px; border-radius: 6px; color: #FFFFFF; background: ' + (flashOn ? '#B83A0E' : '#12232E') + '; border: 2px solid #FF7A55';
     const helpEl = Math.max(0, (tick - (s.helpTick || 0)) / 10);
     const etaS = Math.max(0, Math.ceil(90 - helpEl));
-    const helpHeadline = helpEl < 3 ? 'Alerting nurses…' : (etaS > 0 ? 'Help is on the way' : 'A nurse is arriving now');
-    const helpSub = helpEl < 3 ? 'Sending your location to the nurse station.' : 'Stay where you are. If you can, raise your hand so the nurse can find you.';
+    const helpHeadline = helpEl < 3 ? 'Alerting nurses…' : (etaS > 0 ? 'Stay here, a nurse is coming' : 'A nurse is arriving now');
+    const helpSub = helpEl < 3 ? 'Stay here. Sending your location to the nurse station.' : 'You keep your place in line. If you can, raise your hand so the nurse can find you.';
     const helpEta = etaS > 0 ? Math.floor(etaS / 60) + ':' + String(etaS % 60).padStart(2, '0') : 'Now';
 
     // ---- map
@@ -1257,6 +1266,7 @@ class Component extends DCLogic {
       nfcSub: tick < (s.nfcUntil || 0) ? 'Your HALO page is opening.' : 'Works like tap to pay. No app needed.',
       nfcStyle: 'width: 108px; height: 88px; flex-shrink: 0; padding: 0; border-radius: 14px; border: 3px solid #3FC1C0; background: #12232E; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 ' + (tick < (s.nfcUntil || 0) ? (flashOn ? 12 : 5) : 4) + 'px rgba(63,193,192,' + (tick < (s.nfcUntil || 0) ? 0.45 : 0.22) + ')',
       tapNfc: () => { this.setState({ nfcUntil: tick + 45 }); this.chirp(); },
+      getPhone: () => { this.setState({ nfcUntil: tick + 45 }); this.chirp(); if (window.haloShowPhone) window.haloShowPhone(); },
       normalMode: mode === 'normal', helpMode: alarm, notHelp: !alarm, mapMode: mode === 'map', notMap: mode !== 'map',
       videoThumb: !s.videoOpen, videoOpen: !!s.videoOpen,
       v: this.video(s.vt || 0, !!s.playing, !!s.ended),
@@ -1421,7 +1431,7 @@ class Component extends DCLogic {
     const waited = Math.floor((Date.now() - checkin.getTime()) / 60000);
     const me = {
       wait: idx < 0 ? 'Called' : kiosk.fmtWait(q[idx].mins),
-      lvlText: 'Level 4',
+      lvlText: 'Level 4 · ' + L[4].name,
       lvlStyle: 'display: inline-block; white-space: nowrap; font-size: 13px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: ' + L[4].bg + '; color: ' + L[4].fg,
       line: idx < 0 ? 'You’re being called. Head to the doors on your right.' : (idx === 0 ? 'You’re being called now' : idx + (idx === 1 ? ' person' : ' people') + ' ahead of you · in line ' + waited + ' min')
     };
@@ -1439,7 +1449,8 @@ class Component extends DCLogic {
       chevStyle: phone.listOpen ? 'transform: rotate(180deg)' : '',
       toggleList: () => { phone.listOpen = !phone.listOpen; schedule(); },
       phoneHelpBg: alarm ? (flashOn ? kv.help : '#7A1C05') : kv.help,
-      phoneHelpTitle: alarm ? 'Help is on the way' : 'Call for help',
+      phoneHelpTitle: alarm ? 'Stay here, a nurse is coming' : 'Call for help',
+      phoneAlarm: alarm, cancelHelp: () => kv.cancelHelp(),
       phoneHelpSub: alarm ? (etaS > 0 ? 'Nurse arriving in ' + Math.floor(etaS / 60) + ':' + String(etaS % 60).padStart(2, '0') + '. You keep your place.' : 'A nurse is arriving now.') : 'Feeling worse? A nurse will come to you. You keep your place.',
       pressHelp: () => { if (!alarm) kv.pressHelp(); }
     };
@@ -1498,6 +1509,7 @@ class Component extends DCLogic {
     const cur = view === 'kiosk' && !panel.hidden && mode === 'phone' ? 'phone' : view;
     document.querySelectorAll('.links a').forEach((a) => { if (a.getAttribute('data-nav') === cur) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   }
+  window.haloShowPhone = () => { window.__haloAskedPhone = true; setTimeout(() => { window.__haloAskedPhone = false; }, 0); openPanel('phone'); };
   tabK.addEventListener('click', () => openPanel('kiosk'));
   tabP.addEventListener('click', () => openPanel('phone'));
   document.querySelectorAll('.links a[data-nav="phone"]').forEach((a) => a.addEventListener('click', (e) => {
@@ -1877,7 +1889,7 @@ class Component extends DCLogic {
         const bg = r.open ? '#DCEFED' : flash ? '#FFF4C2' : (i === 0 ? '#FFF1E8' : '#FFFFFF');
         rr(32, y, 696, 64, 12, bg, r.open ? '#0F5F63' : (flash ? '#C99A00' : null), 2);
         txt(r.ticket, 52, y + 43, 28, '#12232E', 700);
-        const [lb, lf] = colorsOf(r.lvlStyle); rr(172, y + 17, 92, 30, 6, lb); txt(r.lvlText, 182, y + 38, 15, lf, 700);
+        const [lb, lf] = colorsOf(r.lvlStyle); rr(162, y + 17, 160, 30, 6, lb); txt(r.lvlText, 172, y + 38, 15, lf, 700);
         txt(r.status, 302, y + 40, 19, '#2E3E47', 400, 'left', 250);
         txt(r.wait, 708, y + 43, 26, '#12232E', 700, 'right');
         reg(32, y, 696, 64, r.onTap);
@@ -1932,7 +1944,7 @@ class Component extends DCLogic {
         wrap(kv.helpSub, 196, Y + 148, 18, '#FFFFFF', 400, 510, 23, 2);
         [['Alert sent', kv.helpAt], ['Nurse arriving in', kv.helpEta], ['Your place in line', 'Kept']].forEach(([a, b], i) => { const x = 56 + i * 222; rr(x, Y + 196, 206, 70, 10, 'rgba(0,0,0,0.22)'); txt(a, x + 14, Y + 222, 14, '#FFFFFF'); txt(b, x + 14, Y + 252, 24, '#FFFFFF', 700); });
         rr(56, Y + 284, 230, 50, 12, null, '#FFFFFF', 2); txt(kv.muteLabel, 171, Y + 315, 17, '#FFFFFF', 700, 'center'); reg(56, Y + 284, 230, 50, kv.toggleMute);
-        rr(444, Y + 284, 260, 50, 12, '#FFFFFF'); txt('I’m OK, cancel alert', 574, Y + 315, 17, '#8E2A08', 700, 'center'); reg(444, Y + 284, 260, 50, kv.cancelHelp);
+        rr(444, Y + 284, 260, 50, 12, '#FFFFFF'); txt('I’m OK now, cancel help', 574, Y + 315, 17, '#8E2A08', 700, 'center'); reg(444, Y + 284, 260, 50, kv.cancelHelp);
         rr(32, Y + 366, 696, 130, 14, '#FFFFFF');
         txt('Hospital map · Floor 1', 50, Y + 396, 18, '#12232E', 700); txt('Stay where you are. A nurse is coming to you.', 50, Y + 420, 14, '#46565F');
         ['You are here', 'Nurse station', 'Restrooms', 'Pharmacy', 'Exit'].forEach((t, i) => { rr(50 + i * 134, Y + 434, 126, 46, 8, i ? '#CDE6E4' : '#0F5F63'); txt(t, 60 + i * 134, Y + 463, 14, i ? '#12232E' : '#FFFFFF', 700, 'left', 110); });
@@ -2250,12 +2262,15 @@ class Component extends DCLogic {
       return best;
     }
     function clickScreen(hit) {
+      // From far away, the first click zooms in to that screen so the text is big enough to read.
+      if (!closeUp || facingScreen() !== hit.i) { focusScreen(hit.i); openPanel('kiosk', hit.i); return; }
       const x = hit.u * 760, y = hit.v * 1580;
       if (useDom) { draw(hitMirror, kTpl, screenComp[hit.i].renderVals()); if (hitDom(hitMirror, hit.u, hit.v)) regions = []; }
       for (let k = regions.length - 1; k >= 0; k--) {
         const g = regions[k];
         if (x >= g.x && x <= g.x + g.w && y >= g.y && y <= g.y + g.h) { if (typeof g.fn === 'function') g.fn(); break; }
       }
+      if (window.__haloAskedPhone) { window.__haloAskedPhone = false; return; }
       openPanel('kiosk', hit.i);
     }
     let drag = null;
