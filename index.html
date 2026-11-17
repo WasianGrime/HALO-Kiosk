@@ -209,21 +209,12 @@ footer.site .in { max-width: 1440px; margin: 0 auto; padding-block: 18px 28px; d
         </div>
         <button type="button" class="panel-close" id="panelClose" aria-label="Close panel"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="#12232E" stroke-width="2.5" stroke-linecap="round"></path></svg></button>
       </div>
-      <div class="panel-intro">
-        <h2 class="panel-title" id="panelTitle">Tower screen</h2>
-        <p class="panel-sub" id="panelSub">Live. Each side of the tower works on its own.</p>
-      </div>
+      <p class="panel-sub" id="panelSub">Side 1 of the tower</p>
       <div class="panel-body" id="panelBody">
         <div id="paneKiosk" role="tabpanel" aria-labelledby="tabKiosk">
           <div class="kiosk-crop" id="kioskCrop"><div class="dc" id="kiosk" style="width:920px;height:2110px"></div></div>
         </div>
         <div id="panePhone" role="tabpanel" aria-labelledby="tabPhone" hidden>
-          <ol class="how" aria-label="How a patient gets this page">
-            <li><span class="ic">1</span><span><b>Check in</b>The front desk gives them a ticket.</span></li>
-            <li><span class="ic">2</span><span><b>Scan or tap</b>They scan the QR code, or hold their phone to the pad on the tower.</span></li>
-            <li><span class="ic">3</span><span><b>This page opens</b>No app. Their ticket, wait and Call for help, synced with the tower.</span></li>
-          </ol>
-          <button type="button" class="demo" id="demoTap">Show the tap-to-phone moment</button>
           <div class="phone-holder" id="phoneHolder">
             <div class="phone-frame" id="phoneFrame"><div class="phone-screen"><div id="phone"></div></div></div>
           </div>
@@ -1488,8 +1479,12 @@ class Component extends DCLogic {
     tabK.setAttribute('aria-selected', m === 'kiosk' ? 'true' : 'false');
     tabP.setAttribute('aria-selected', m === 'phone' ? 'true' : 'false');
     paneK.hidden = m !== 'kiosk'; paneP.hidden = m !== 'phone';
-    document.getElementById('panelTitle').textContent = m === 'kiosk' ? 'Tower screen · side ' + (panelScreen + 1) + ' of 6' : 'Patient’s phone';
-    panelSub.textContent = m === 'kiosk' ? 'This is the side you clicked. Each side works on its own; Call for help shows on every side.' : 'What a patient with ticket A118 sees on their own phone. It shows the same live wait list as the tower.';
+    panelSub.textContent = m === 'kiosk' ? 'Side ' + (panelScreen + 1) + ' of the tower' : 'What the patient sees on their own phone';
+    // keep the address in step without firing a page change, so the tabs never get stuck
+    if (view === 'kiosk') {
+      const want = m === 'phone' ? '#phone' : '#kiosk';
+      if (location.hash !== want) { try { history.replaceState(null, '', want); } catch (e) {} }
+    }
     markNav();
   }
   function openPanel(m, side) {
@@ -1498,19 +1493,17 @@ class Component extends DCLogic {
     if (panel.hidden) { panel.hidden = false; stageEl.classList.add('panel-open'); viewer.setPanel(true); }
     fit(); schedule();
   }
-  function closePanel() { panel.hidden = true; stageEl.classList.remove('panel-open'); viewer.setPanel(false); markNav(); if (location.hash === '#phone') location.hash = 'kiosk'; }
+  function closePanel() { panel.hidden = true; stageEl.classList.remove('panel-open'); viewer.setPanel(false); markNav(); if (location.hash === '#phone') { try { history.replaceState(null, '', '#kiosk'); } catch (e) {} } }
   function markNav() {
     const cur = view === 'kiosk' && !panel.hidden && mode === 'phone' ? 'phone' : view;
     document.querySelectorAll('.links a').forEach((a) => { if (a.getAttribute('data-nav') === cur) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   }
-  tabK.addEventListener('click', () => { if (location.hash === '#phone') location.hash = 'kiosk'; openPanel('kiosk'); });
-  tabP.addEventListener('click', () => { location.hash = 'phone'; });
-  document.getElementById('demoTap').addEventListener('click', () => {
-    const side = viewer.facing();
-    locals[side].nfcUntil = (kiosk.state.tick || 0) + 45;
-    const scr = document.querySelector('#panePhone .phone-screen'); if (scr) scr.scrollTop = 0;
-    schedule();
-  });
+  tabK.addEventListener('click', () => openPanel('kiosk'));
+  tabP.addEventListener('click', () => openPanel('phone'));
+  document.querySelectorAll('.links a[data-nav="phone"]').forEach((a) => a.addEventListener('click', (e) => {
+    if (view !== 'kiosk') return; // coming from another page: let the address change handle it
+    e.preventDefault(); openPanel('phone');
+  }));
   document.getElementById('panelClose').addEventListener('click', closePanel);
   document.getElementById('openPanelBtn').addEventListener('click', () => openPanel('kiosk', viewer.facing()));
   document.getElementById('noGlOpen').addEventListener('click', () => openPanel('kiosk'));
@@ -2263,7 +2256,6 @@ class Component extends DCLogic {
         const g = regions[k];
         if (x >= g.x && x <= g.x + g.w && y >= g.y && y <= g.y + g.h) { if (typeof g.fn === 'function') g.fn(); break; }
       }
-      if (location.hash === '#phone') location.hash = 'kiosk';
       openPanel('kiosk', hit.i);
     }
     let drag = null;
